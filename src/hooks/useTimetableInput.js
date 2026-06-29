@@ -14,13 +14,13 @@ import { generateTimetable } from '../api/timetable'
 export function useTimetableInput() {
   const navigate = useNavigate()
   const store = useTimetableStore()
-
+// swaager의 response 스키마에 맞게 onSuccess에서 data 처리 수정 필요 시 아래 mutation 선언에서 바꿔주면 됨
   const mutation = useMutation({
     mutationFn: generateTimetable,
-    onSuccess: () => navigate('/result'),
+    onSuccess: () => navigate('/result'), // 엔드포인트 필요시 수정
     onError: (e) => console.error(e.response?.data?.message ?? '오류가 발생했습니다.'),
   })
-
+// swagger의 request body에 맞게 필드명 수정 필요 시 아래 submit()에서 바꿔주면 됨
   const submit = () =>
     mutation.mutate({
       credits: store.credits,
