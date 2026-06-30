@@ -18,7 +18,8 @@ export function useTimetableInput() {
   const mutation = useMutation({
     mutationFn: generateTimetable,
     onSuccess: () => navigate('/result'), // 엔드포인트 필요시 수정
-    onError: (e) => console.error(e.response?.data?.message ?? '오류가 발생했습니다.'),
+// API가 실제로 붙으면 성공 시 onSuccess가 이동시켜주니까, 에러 때도 강제로 이동하는 코드는 필요 없어져서 navigate('/result')를 지워야합니다.
+    onError: (e) => { console.error(e.response?.data?.message ?? '오류가 발생했습니다.'); navigate('/result') },
   })
 // swagger의 request body에 맞게 필드명 수정 필요 시 아래 submit()에서 바꿔주면 됨
   const submit = () =>
