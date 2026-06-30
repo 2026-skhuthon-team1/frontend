@@ -24,10 +24,13 @@ export function useTimetableInput() {
 // swagger의 request body에 맞게 필드명 수정 필요 시 아래 submit()에서 바꿔주면 됨
   const submit = () =>
     mutation.mutate({
-      credits: store.credits,
+      majorCredits: store.majorCredits,
+      generalCredits: store.generalCredits,
       grade: store.grade,
       offDays: store.offDays,
       avoidFirstClass: store.avoidFirstClass,
+      includeSocialService: store.includeSocialService,
+      majors: store.majors,
     })
 
   return {
