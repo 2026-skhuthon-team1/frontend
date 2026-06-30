@@ -12,28 +12,28 @@ const SLOT_H = 64
 // ponytail: 임시 데이터 — 백엔드 연동 시 API 응답 형태에 맞게 교체 필요
 const COMBINATIONS = [
   {
-    id: 1, rank: 1, satisfaction: 98,
+    id: 1, rank: 1,
     name: '추천 시간표 A',
     desc: '전공 4 + 교양 2 | 18학점 | 금공강 | 1교시 없음',
     tags: ['#금공강', '#점심시간보장', '#1교시없음'],
     courses: [
-      { name: '알고리즘',    room: '정보관 402호', day: 0, slot: 1, span: 2, bg: '#ecfcca', border: '#7ccf00', color: '#3c6300' },
-      { name: '현대사회와윤리', room: '인문관 101호',  day: 0, slot: 4, span: 1, bg: '#dbeafe', border: '#2b7fff', color: '#193cb8' },
-      { name: '운영체제',    room: '정보관 205호', day: 1, slot: 2, span: 2, bg: '#ffedd4', border: '#ff6900', color: '#9f2d00' },
-      { name: '알고리즘',    room: '정보관 402호', day: 2, slot: 1, span: 2, bg: '#ecfcca', border: '#7ccf00', color: '#3c6300' },
-      { name: '운영체제',    room: '정보관 205호', day: 3, slot: 2, span: 2, bg: '#ffedd4', border: '#ff6900', color: '#9f2d00' },
-      { name: '창업과경영',   room: '경영관 303호', day: 3, slot: 5, span: 1, bg: '#f3e8ff', border: '#ad46ff', color: '#6b21a8' },
+      { name: '알고리즘',     type: '전선', room: '정보관 402호', day: 0, slot: 1, span: 2, bg: '#ecfcca', border: '#7ccf00', color: '#3c6300' },
+      { name: '현대사회와윤리', type: '교양', room: '인문관 101호',  day: 0, slot: 4, span: 1, bg: '#dbeafe', border: '#2b7fff', color: '#193cb8' },
+      { name: '운영체제',     type: '전필', room: '정보관 205호', day: 1, slot: 2, span: 2, bg: '#ffedd4', border: '#ff6900', color: '#9f2d00' },
+      { name: '알고리즘',     type: '전선', room: '정보관 402호', day: 2, slot: 1, span: 2, bg: '#ecfcca', border: '#7ccf00', color: '#3c6300' },
+      { name: '운영체제',     type: '전필', room: '정보관 205호', day: 3, slot: 2, span: 2, bg: '#ffedd4', border: '#ff6900', color: '#9f2d00' },
+      { name: '창업과경영',   type: '교양', room: '경영관 303호', day: 3, slot: 5, span: 1, bg: '#f3e8ff', border: '#ad46ff', color: '#6b21a8' },
     ],
   },
   {
-    id: 2, rank: 2, satisfaction: 92,
+    id: 2, rank: 2,
     name: '추천 시간표 B',
     desc: '전공 5 + 교양 1 | 18학점 | 수/금 공강 | 1교시 없음',
     tags: ['#수공강', '#금공강'],
     courses: [],
   },
   {
-    id: 3, rank: 3, satisfaction: 89,
+    id: 3, rank: 3,
     name: '추천 시간표 C',
     desc: '전공 3 + 교양 3 | 17학점',
     tags: ['#점심시간보장'],
@@ -64,13 +64,10 @@ export default function TimetableResultPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* 왼쪽 패널 — AI 추천 조합 목록 */}
         <aside className="w-[400px] shrink-0 bg-[#f8fafc] border-r border-[#f1f5f9] flex flex-col overflow-y-auto">
-          <div className="flex items-center justify-between px-6 py-4">
+          <div className="px-6 py-4">
             <span className="font-bold text-base text-[#1d293d]">
               AI 추천 조합 <span className="text-[#7ccf00]">12</span>
             </span>
-            <button className="text-xs text-[#62748e] border border-[#e2e8f0] rounded-lg px-3 py-1.5 bg-white hover:border-[#ecfcca] transition-colors">
-              정렬: 만족도순
-            </button>
           </div>
 
           <div className="flex flex-col gap-3 px-6 pb-6">
@@ -84,9 +81,8 @@ export default function TimetableResultPage() {
                     isSelected ? 'border-[#7ccf00]' : 'border-[#e2e8f0] hover:border-[#ecfcca]'
                   }`}
                 >
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="mb-2">
                     <Badge variant={isSelected ? 'primary' : 'gray'}>추천 {combo.rank}순위</Badge>
-                    <span className="text-xs text-[#62748e]">만족도 {combo.satisfaction}%</span>
                   </div>
                   <p className="font-bold text-[15px] text-[#1d293d] mb-1">{combo.name}</p>
                   <p className="text-[11px] text-[#90a1b9]">{combo.desc}</p>
@@ -188,6 +184,7 @@ export default function TimetableResultPage() {
                       >
                         <p className="text-[10px] font-bold leading-tight truncate">{course.name}</p>
                         <p className="text-[8px] leading-tight mt-0.5 truncate opacity-80">{course.room}</p>
+                        <p className="text-[8px] leading-tight mt-0.5 truncate opacity-80">{course.type}</p>
                       </div>
                     ))}
                 </div>
