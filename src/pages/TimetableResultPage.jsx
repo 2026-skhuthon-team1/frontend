@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { toPng } from 'html-to-image'
 import { Badge } from '../components/Badge'
 import { Button } from '../components/Button'
+import TopBar from '../components/TopBar'
 
 const TIMES = ['09:00', '10:30', '12:00', '13:30', '15:00', '16:30', '18:00']
 const DAYS = ['월', '화', '수', '목', '금']
@@ -57,18 +58,7 @@ export default function TimetableResultPage() {
 
   return (
     <div className="h-screen flex flex-col bg-white overflow-hidden">
-      {/* 헤더 — 로고, 학기 정보 */}
-      <header className="h-16 shrink-0 bg-white border-b border-[#f1f5f9] flex items-center justify-between px-8">
-        <div className="flex items-center gap-3">
-          <div className="w-7 h-7 bg-[#7ccf00] rounded-lg flex items-center justify-center">
-            <span className="text-white font-black text-xs">S</span>
-          </div>
-          <span className="text-lg font-bold text-[#1d293d]">시간표짜조</span>
-          <div className="w-px h-4 bg-[#e2e8f0] mx-1" />
-          <span className="text-sm text-[#62748e]">2026년 1학기 수강 신청</span>
-        </div>
-        <div className="w-8 h-8 rounded-full bg-[#e2e8f0]" />
-      </header>
+      <TopBar />
 
       {/* 본문 — 왼쪽 추천 목록 + 오른쪽 시간표 */}
       <div className="flex flex-1 overflow-hidden">
