@@ -67,9 +67,10 @@ export default function Analyze() {
               <path d="M14 2v6h6" /><path d="m9 13 6 6M15 13l-6 6" />
             </svg>
           </div>
-          <h3 className="text-lg font-bold mb-2">성적표 파일 (Excel)</h3>
+          <h3 className="text-lg font-bold mb-2">과거 수강 내역 (Excel)</h3>
           <p className="text-[13px] text-gray-400 leading-relaxed mb-[22px]">
-            학사정보시스템에서 받은 엑셀 파일을<br />여기로 끌어다 놓으세요
+            학사정보시스템 → 졸업 → 졸업 자가진단 → 전체 성적에서<br />
+            엑셀 파일을 내려받아 여기로 끌어다 놓으세요
           </p>
           <span className="inline-block px-6 py-[11px] text-sm font-bold text-primary-600 bg-primary-100 rounded-lg">
             파일 선택
@@ -110,7 +111,7 @@ export default function Analyze() {
             </ul>
           </div>
         )}
-
+]
         <button disabled={!analyzed}
           className={`block mx-auto px-8 py-[13px] text-sm font-bold rounded-lg transition ${
             analyzed
