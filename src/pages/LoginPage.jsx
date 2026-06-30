@@ -1,8 +1,10 @@
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
-import BrandMark from './BrandMark';
+import BrandMark from '../components/BrandMark';
 
 export default function Login() {
-  const { loginId, loginPw, setLoginId, setLoginPw, goTo } = useAppStore();
+  const navigate = useNavigate();
+  const { loginId, loginPw, setLoginId, setLoginPw } = useAppStore();
 
   const inputClass =
     'w-full px-3.5 py-3 text-sm bg-gray-50 border border-gray-200 rounded-lg ' +
@@ -31,18 +33,18 @@ export default function Login() {
             className={inputClass} placeholder="비밀번호를 입력하세요" />
         </div>
 
-        <button onClick={() => goTo('analyze')}
+        <button onClick={() => navigate('/upload')}
           className="w-full py-3.5 text-[15px] font-bold text-white bg-primary-500 rounded-lg mt-1.5 transition hover:bg-primary-600 active:scale-[0.99]">
           로그인
         </button>
 
         <p className="text-center text-xs text-gray-400 my-[26px]">간편 로그인</p>
         <div className="flex gap-3 justify-center">
-          <button onClick={() => goTo('analyze')}
+          <button onClick={() => navigate('/upload')}
             className="w-11 h-11 rounded-full bg-kakao text-gray-800 flex items-center justify-center font-bold transition hover:brightness-95">💬</button>
-          <button onClick={() => goTo('analyze')}
+          <button onClick={() => navigate('/upload')}
             className="w-11 h-11 rounded-full bg-white border border-gray-200 text-gray-600 flex items-center justify-center font-bold transition hover:bg-gray-50">G</button>
-          <button onClick={() => goTo('analyze')}
+          <button onClick={() => navigate('/upload')}
             className="w-11 h-11 rounded-full bg-naver text-white flex items-center justify-center font-bold transition hover:brightness-95">N</button>
         </div>
 

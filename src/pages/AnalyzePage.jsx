@@ -1,6 +1,7 @@
 import { useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
-import TopBar from './TopBar';
+import TopBar from '../components/TopBar';
 
 const STEPS = [
   '엑셀 파일 읽기',
@@ -10,6 +11,7 @@ const STEPS = [
 ];
 
 export default function Analyze() {
+  const navigate = useNavigate();
   const {
     analyzing, progress, doneSteps, activeStep, analyzed,
     startAnalysis, setProgress, setDoneSteps, setActiveStep, finishAnalysis,
@@ -111,7 +113,9 @@ export default function Analyze() {
           </div>
         )}
 
-        <button disabled={!analyzed}
+        <button
+          disabled={!analyzed}
+          onClick={() => navigate('/input')}
           className={`block mx-auto px-8 py-[13px] text-sm font-bold rounded-lg transition ${
             analyzed
               ? 'text-white bg-primary-500 hover:bg-primary-600 cursor-pointer'
