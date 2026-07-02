@@ -1,6 +1,9 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
 import { useAppStore } from '../store/useAppStore';
+import { useTimetableStore } from '../store/timetableStore';
+import { uploadTranscript } from '../api/upload';
 import TopBar from '../components/TopBar';
 
 const STEPS = [
@@ -16,9 +19,19 @@ export default function Analyze() {
     analyzing, progress, doneSteps, activeStep, analyzed,
     startAnalysis, setProgress, setDoneSteps, setActiveStep, finishAnalysis,
   } = useAppStore();
+  const setCompletedCourseCodes = useTimetableStore((s) => s.setCompletedCourseCodes);
   const running = useRef(false);
+  const [fileName, setFileName] = useState('');
 
-  const run = () => {
+  const mutation = useMutation({
+    mutationFn: uploadTranscript,
+    onSuccess: (data) => {
+      setCompletedCourseCodes(data.completedCourseCodes ?? []);
+      finishAnalysis();
+    },
+  });
+
+  const run = (file) => {
     if (running.current) return;
     running.current = true;
     startAnalysis();
@@ -28,7 +41,7 @@ export default function Analyze() {
 
     const next = () => {
       if (step >= STEPS.length) {
-        finishAnalysis();
+        mutation.mutate(file); // 연출용 진행 애니메이션이 끝나면 실제 업로드 요청을 보낸다
         return;
       }
       setActiveStep(step);
@@ -50,6 +63,12 @@ export default function Analyze() {
     next();
   };
 
+  const pickFile = (file) => {
+    if (!file) return;
+    setFileName(file.name);
+    run(file);
+  };
+
   return (
     <>
       <TopBar />
@@ -61,8 +80,16 @@ export default function Analyze() {
           </p>
         </div>
 
-        <button onClick={run}
+        <label
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => { e.preventDefault(); pickFile(e.dataTransfer.files?.[0]); }}
           className="w-full bg-white rounded-2xl shadow-[0_1px_3px_rgba(15,23,43,0.06)] border-2 border-dashed border-gray-200 px-8 py-12 text-center mb-6 transition hover:border-primary-500 hover:bg-primary-100/30 cursor-pointer block">
+          <input
+            type="file"
+            accept=".xlsx,.xls"
+            onChange={(e) => pickFile(e.target.files?.[0])}
+            className="hidden"
+          />
           <div className="w-16 h-16 mx-auto mb-5 bg-primary-100 rounded-2xl flex items-center justify-center">
             <svg className="w-[34px] h-[34px]" viewBox="0 0 24 24" fill="none" stroke="#5ea500" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -71,13 +98,29 @@ export default function Analyze() {
           </div>
           <h3 className="text-lg font-bold mb-2">과거 수강 내역 (Excel)</h3>
           <p className="text-[13px] text-gray-400 leading-relaxed mb-[22px]">
-            학사정보시스템 → 졸업 → 졸업 자가진단 → 전체 성적에서<br />
-            엑셀 파일을 내려받아 여기로 끌어다 놓으세요
+            {fileName || (
+              <>학사정보시스템 → 졸업 → 졸업 자가진단 → 전체 성적에서<br />엑셀 파일을 내려받아 여기로 끌어다 놓으세요</>
+            )}
           </p>
           <span className="inline-block px-6 py-[11px] text-sm font-bold text-primary-600 bg-primary-100 rounded-lg">
             파일 선택
           </span>
-        </button>
+        </label>
+
+        {mutation.isError && (
+          <div className="text-center mb-6">
+            <p className="text-sm text-red-500">
+              {mutation.error.response?.data?.message ?? '업로드에 실패했습니다.'}
+            </p>
+            {/* ponytail: 백엔드 연결 전 임시 건너뛰기 — 실제 업로드 API 붙으면 이 버튼 삭제 */}
+            <button
+              onClick={finishAnalysis}
+              className="text-xs text-gray-400 underline mt-1 cursor-pointer"
+            >
+              (임시) 백엔드 연결 전까지 건너뛰기
+            </button>
+          </div>
+        )}
 
         {analyzing && (
           <div className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(15,23,43,0.06)] border border-gray-200 px-[26px] py-6 mb-7">
