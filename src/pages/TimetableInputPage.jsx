@@ -4,7 +4,7 @@ import { useTimetableInput } from '../hooks/useTimetableInput'
 import TopBar from '../components/TopBar'
 
 const DAYS = ['월', '화', '수', '목', '금']
-const GRADES = [1, 2, 3, 4]
+const GRADES = [2, 3, 4] // 1학년은 아직 시간표 입력 대상이 아니므로 제외
 // 더미 전공 목록 — 백엔드 연동 시 API로 교체
 const MAJORS = ['컴퓨터공학과', '소프트웨어공학과', '전자공학과', '경영학과']
 
