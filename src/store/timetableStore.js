@@ -8,6 +8,7 @@ export const useTimetableStore = create((set) => ({
   avoidFirstClass: true,
   includeSocialService: false,
   majors: [],
+  completedCourseCodes: [], // 엑셀 업로드로 받아온 이수 과목코드 — /courses/candidates 호출 시 사용
 
   setMajorCredits: (majorCredits) => set({ majorCredits }),
   setGeneralCredits: (generalCredits) => set({ generalCredits }),
@@ -26,4 +27,5 @@ export const useTimetableStore = create((set) => ({
         ? s.majors.filter((x) => x !== m)
         : [...s.majors, m],
     })),
+  setCompletedCourseCodes: (completedCourseCodes) => set({ completedCourseCodes }),
 }))
