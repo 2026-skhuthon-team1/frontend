@@ -1,12 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/Button'
 import { useTimetableInput } from '../hooks/useTimetableInput'
+import { useMajorOptions } from '../hooks/useMajorOptions'
 import TopBar from '../components/TopBar'
 
 const DAYS = ['월', '화', '수', '목', '금']
 const GRADES = [2, 3, 4] // 1학년은 아직 시간표 입력 대상이 아니므로 제외
-// 더미 전공 목록 — 백엔드 연동 시 API로 교체
-const MAJORS = ['컴퓨터공학과', '소프트웨어공학과', '전자공학과', '경영학과']
 
 function SectionRow({ label, description, children }) {
   return (
@@ -20,7 +19,8 @@ function SectionRow({ label, description, children }) {
   )
 }
 
-function MajorSelect({ values, onToggle }) {
+function MajorSelect({ values, onToggle, options }) {
+  const labelOf = (value) => options.find((o) => o.value === value)?.label ?? value
   return (
     <div className="flex flex-col gap-2">
       <div className="relative">
@@ -30,8 +30,8 @@ function MajorSelect({ values, onToggle }) {
           className="h-14 min-w-[220px] rounded-xl border-2 border-[#e2e8f0] bg-white px-4 pr-10 text-[#90a1b9] text-base font-medium appearance-none focus:outline-none focus:border-[#7ccf00] cursor-pointer transition-colors"
         >
           <option value="">전공을 선택하세요</option>
-          {MAJORS.map((m) => (
-            <option key={m} value={m} disabled={values.includes(m)}>{m}</option>
+          {options.map((o) => (
+            <option key={o.value} value={o.value} disabled={values.includes(o.value)}>{o.label}</option>
           ))}
         </select>
         <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
@@ -49,7 +49,7 @@ function MajorSelect({ values, onToggle }) {
               onClick={() => onToggle(m)}
               className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-[#f7fee7] border border-[#7ccf00] text-[#5ea500] text-sm font-medium hover:bg-[#ecfcca] transition-colors"
             >
-              {m}
+              {labelOf(m)}
               <span className="text-[#90a1b9] leading-none">✕</span>
             </button>
           ))}
@@ -82,6 +82,7 @@ export default function TimetableInputPage() {
     setMajorCredits, setGeneralCredits, setGrade, toggleOffDay, setAvoidFirstClass, setIncludeSocialService, toggleMajor,
     loading, error, submit,
   } = useTimetableInput()
+  const majorOptions = useMajorOptions()
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col">
@@ -188,7 +189,7 @@ export default function TimetableInputPage() {
 
             {/* 전공 선택 — 복수전공 시 여러 개 선택 가능 */}
             <SectionRow label="전공 선택" description="복수전공의 경우 복수 선택 가능">
-              <MajorSelect values={majors} onToggle={toggleMajor} />
+              <MajorSelect values={majors} onToggle={toggleMajor} options={majorOptions} />
             </SectionRow>
           </div>
 
