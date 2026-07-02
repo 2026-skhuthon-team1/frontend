@@ -1,51 +1,101 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toPng } from 'html-to-image'
 import { Badge } from '../components/Badge'
 import { Button } from '../components/Button'
 import TopBar from '../components/TopBar'
+import { useTimetableStore } from '../store/timetableStore'
+import { fixMojibake } from '../utils/mojibake'
 
 const TIMES = ['09:00', '10:30', '12:00', '13:30', '15:00', '16:30', '18:00']
 const DAYS = ['월', '화', '수', '목', '금']
 const SLOT_H = 64
+const SLOT_MIN = 90
+const BASE_MIN = 9 * 60 // 09:00 기준 — 슬롯 인덱스 계산의 시작점
 
-// ponytail: 임시 데이터 — 백엔드 연동 시 API 응답 형태에 맞게 교체 필요
-const COMBINATIONS = [
-  {
-    id: 1, rank: 1,
-    name: '추천 시간표 A',
-    desc: '전공 4 + 교양 2 | 18학점 | 금공강 | 1교시 없음',
-    tags: ['#금공강', '#점심시간보장', '#1교시없음'],
-    courses: [
-      { name: '알고리즘',     type: '전선', room: '정보관 402호', day: 0, slot: 1, span: 2, bg: '#ecfcca', border: '#7ccf00', color: '#3c6300' },
-      { name: '현대사회와윤리', type: '교양', room: '인문관 101호',  day: 0, slot: 4, span: 1, bg: '#dbeafe', border: '#2b7fff', color: '#193cb8' },
-      { name: '운영체제',     type: '전필', room: '정보관 205호', day: 1, slot: 2, span: 2, bg: '#ffedd4', border: '#ff6900', color: '#9f2d00' },
-      { name: '알고리즘',     type: '전선', room: '정보관 402호', day: 2, slot: 1, span: 2, bg: '#ecfcca', border: '#7ccf00', color: '#3c6300' },
-      { name: '운영체제',     type: '전필', room: '정보관 205호', day: 3, slot: 2, span: 2, bg: '#ffedd4', border: '#ff6900', color: '#9f2d00' },
-      { name: '창업과경영',   type: '교양', room: '경영관 303호', day: 3, slot: 5, span: 1, bg: '#f3e8ff', border: '#ad46ff', color: '#6b21a8' },
-    ],
-  },
-  {
-    id: 2, rank: 2,
-    name: '추천 시간표 B',
-    desc: '전공 5 + 교양 1 | 18학점 | 수/금 공강 | 1교시 없음',
-    tags: ['#수공강', '#금공강'],
-    courses: [],
-  },
-  {
-    id: 3, rank: 3,
-    name: '추천 시간표 C',
-    desc: '전공 3 + 교양 3 | 17학점',
-    tags: ['#점심시간보장'],
-    courses: [],
-  },
+// 과목 블록 색상 — category 문자열을 해시로 팔레트에 매핑해서 카테고리마다 일관된 색을 준다
+const PALETTE = [
+  { bg: '#ecfcca', border: '#7ccf00', color: '#3c6300' },
+  { bg: '#dbeafe', border: '#2b7fff', color: '#193cb8' },
+  { bg: '#ffedd4', border: '#ff6900', color: '#9f2d00' },
+  { bg: '#f3e8ff', border: '#ad46ff', color: '#6b21a8' },
+  { bg: '#fee2e2', border: '#fb2c36', color: '#9f0712' },
+  { bg: '#fef9c3', border: '#f0b100', color: '#894b00' },
 ]
+function colorFor(category) {
+  let hash = 0
+  for (const ch of category ?? '') hash = (hash * 31 + ch.charCodeAt(0)) % PALETTE.length
+  return PALETTE[hash]
+}
+
+const toMin = (hhmm) => {
+  const [h, m] = hhmm.split(':').map(Number)
+  return h * 60 + m
+}
+
+// AiCourseDto.schedules 문자열("화 15:00~17:50")을 요일/시작/종료로 분해한다
+function parseSchedule(s) {
+  const [startTime, endTime] = s.slice(2).split('~')
+  return { day: s[0], startTime, endTime }
+}
+
+// 백엔드 응답(AiTimetableDto)을 화면에서 쓰는 카드 데이터로 변환한다
+// AiCourseDto엔 강의실·전공/교양 합계·공강 요일이 따로 없어서 courses[].schedules로부터 전부 계산한다
+function toCard(combo, index, excludeFirstPeriod) {
+  const courses = combo.courses ?? []
+  const slots = courses.flatMap((c) => (c.schedules ?? []).map((s) => ({ course: c, ...parseSchedule(s) })))
+
+  const freeDays = DAYS.filter((d) => !slots.some((s) => s.day === d))
+  const majorCredits = courses.filter((c) => c.category !== '교양').reduce((sum, c) => sum + c.credits, 0)
+  const generalCredits = courses.filter((c) => c.category === '교양').reduce((sum, c) => sum + c.credits, 0)
+  const totalCredits = majorCredits + generalCredits
+  const noFirstPeriod = !slots.some((s) => s.startTime === '09:00')
+  const hasLunchClass = slots.some((s) => toMin(s.startTime) < toMin('13:30') && toMin(s.endTime) > toMin('12:00'))
+
+  const tags = []
+  for (const d of freeDays) tags.push(`#${d}공강`)
+  if (!hasLunchClass) tags.push('#점심시간보장')
+  if (excludeFirstPeriod && noFirstPeriod) tags.push('#1교시없음')
+
+  const descParts = [`전공 ${majorCredits} + 교양 ${generalCredits}`, `${totalCredits}학점`]
+  if (freeDays.length > 0) descParts.push(`${freeDays.join('/')} 공강`)
+  if (excludeFirstPeriod && noFirstPeriod) descParts.push('1교시 없음')
+
+  const blocks = slots.map((s) => ({
+    name: fixMojibake(s.course.courseName),
+    type: s.course.category,
+    day: DAYS.indexOf(s.day),
+    slot: Math.round((toMin(s.startTime) - BASE_MIN) / SLOT_MIN),
+    span: Math.max(1, Math.round((toMin(s.endTime) - toMin(s.startTime)) / SLOT_MIN)),
+    ...colorFor(s.course.category),
+  }))
+
+  return {
+    id: combo.timetableId ?? index,
+    rank: index + 1,
+    name: `추천 시간표 ${String.fromCharCode(65 + index)}`,
+    desc: descParts.join(' | '),
+    tags,
+    courses: blocks,
+  }
+}
 
 export default function TimetableResultPage() {
   const navigate = useNavigate()
-  const [selectedId, setSelectedId] = useState(1)
-  const selected = COMBINATIONS.find(c => c.id === selectedId)
+  const combinations = useTimetableStore((s) => s.combinations)
+  const avoidFirstClass = useTimetableStore((s) => s.avoidFirstClass)
+  const CARDS = useMemo(
+    () => combinations.map((c, i) => toCard(c, i, avoidFirstClass)),
+    [combinations, avoidFirstClass]
+  )
+  const [selectedId, setSelectedId] = useState(null)
+  const selected = CARDS.find((c) => c.id === selectedId) ?? CARDS[0]
   const timetableRef = useRef(null)
+
+  // 새로고침 등으로 store가 비어있으면 다시 입력부터 하도록 되돌린다
+  useEffect(() => {
+    if (CARDS.length === 0) navigate('/input', { replace: true })
+  }, [CARDS.length, navigate])
 
   // 시간표 영역을 PNG로 캡처해서 기기에 바로 다운로드
   const saveAsImage = async () => {
@@ -66,12 +116,12 @@ export default function TimetableResultPage() {
         <aside className="w-[400px] shrink-0 bg-[#f8fafc] border-r border-[#f1f5f9] flex flex-col overflow-y-auto">
           <div className="px-6 py-4">
             <span className="font-bold text-base text-[#1d293d]">
-              AI 추천 조합 <span className="text-[#7ccf00]">12</span>
+              AI 추천 조합 <span className="text-[#7ccf00]">{CARDS.length}</span>
             </span>
           </div>
 
           <div className="flex flex-col gap-3 px-6 pb-6">
-            {COMBINATIONS.map((combo) => {
+            {CARDS.map((combo) => {
               const isSelected = combo.id === selectedId
               return (
                 <button
@@ -183,7 +233,6 @@ export default function TimetableResultPage() {
                         }}
                       >
                         <p className="text-[10px] font-bold leading-tight truncate">{course.name}</p>
-                        <p className="text-[8px] leading-tight mt-0.5 truncate opacity-80">{course.room}</p>
                         <p className="text-[8px] leading-tight mt-0.5 truncate opacity-80">{course.type}</p>
                       </div>
                     ))}

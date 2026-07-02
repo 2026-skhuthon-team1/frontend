@@ -8,7 +8,8 @@ export const useTimetableStore = create((set) => ({
   avoidFirstClass: true,
   includeSocialService: false,
   majors: [],
-  completedCourseCodes: [], // 엑셀 업로드로 받아온 이수 과목코드 — /courses/candidates 호출 시 사용
+  transcriptFile: null, // /upload에서 선택한 엑셀 원본 파일 — /input 제출 시 조건과 함께 /timetables/generate로 전송
+  combinations: [], // POST /timetables/generate 응답의 candidates — /result 페이지가 이 값을 읽어서 렌더링
 
   setMajorCredits: (majorCredits) => set({ majorCredits }),
   setGeneralCredits: (generalCredits) => set({ generalCredits }),
@@ -27,5 +28,6 @@ export const useTimetableStore = create((set) => ({
         ? s.majors.filter((x) => x !== m)
         : [...s.majors, m],
     })),
-  setCompletedCourseCodes: (completedCourseCodes) => set({ completedCourseCodes }),
+  setTranscriptFile: (transcriptFile) => set({ transcriptFile }),
+  setCombinations: (combinations) => set({ combinations }),
 }))

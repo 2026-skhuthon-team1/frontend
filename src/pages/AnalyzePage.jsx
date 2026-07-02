@@ -1,9 +1,7 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
 import { useAppStore } from '../store/useAppStore';
 import { useTimetableStore } from '../store/timetableStore';
-import { uploadTranscript } from '../api/upload';
 import TopBar from '../components/TopBar';
 
 const STEPS = [
@@ -19,17 +17,9 @@ export default function Analyze() {
     analyzing, progress, doneSteps, activeStep, analyzed,
     startAnalysis, setProgress, setDoneSteps, setActiveStep, finishAnalysis,
   } = useAppStore();
-  const setCompletedCourseCodes = useTimetableStore((s) => s.setCompletedCourseCodes);
+  const setTranscriptFile = useTimetableStore((s) => s.setTranscriptFile);
   const running = useRef(false);
   const [fileName, setFileName] = useState('');
-
-  const mutation = useMutation({
-    mutationFn: uploadTranscript,
-    onSuccess: (data) => {
-      setCompletedCourseCodes(data.completedCourseCodes ?? []);
-      finishAnalysis();
-    },
-  });
 
   const run = (file) => {
     if (running.current) return;
@@ -41,7 +31,10 @@ export default function Analyze() {
 
     const next = () => {
       if (step >= STEPS.length) {
-        mutation.mutate(file); // 연출용 진행 애니메이션이 끝나면 실제 업로드 요청을 보낸다
+        // 엑셀 파싱은 백엔드가 /timetables/generate에서 조건과 함께 한 번에 처리하므로
+        // 여기서는 파일을 store에 담아두기만 하고, 이 연출용 진행 애니메이션으로 끝낸다
+        setTranscriptFile(file);
+        finishAnalysis();
         return;
       }
       setActiveStep(step);
@@ -106,21 +99,6 @@ export default function Analyze() {
             파일 선택
           </span>
         </label>
-
-        {mutation.isError && (
-          <div className="text-center mb-6">
-            <p className="text-sm text-red-500">
-              {mutation.error.response?.data?.message ?? '업로드에 실패했습니다.'}
-            </p>
-            {/* ponytail: 백엔드 연결 전 임시 건너뛰기 — 실제 업로드 API 붙으면 이 버튼 삭제 */}
-            <button
-              onClick={finishAnalysis}
-              className="text-xs text-gray-400 underline mt-1 cursor-pointer"
-            >
-              (임시) 백엔드 연결 전까지 건너뛰기
-            </button>
-          </div>
-        )}
 
         {analyzing && (
           <div className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(15,23,43,0.06)] border border-gray-200 px-[26px] py-6 mb-7">
