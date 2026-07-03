@@ -18,6 +18,7 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
     startAnalysis, setProgress, setDoneSteps, setActiveStep, finishAnalysis,
   } = useAppStore();
   const setTranscriptFile = useTimetableStore((s) => s.setTranscriptFile);
+  const setFirstYearFirstSemester = useTimetableStore((s) => s.setFirstYearFirstSemester);
   const running = useRef(false);
   const [fileName, setFileName] = useState('');
 
@@ -34,6 +35,7 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
         // 엑셀 파싱은 백엔드가 /timetables/generate에서 조건과 함께 한 번에 처리하므로
         // 여기서는 파일을 store에 담아두기만 하고, 이 연출용 진행 애니메이션으로 끝낸다
         setTranscriptFile(file);
+        setFirstYearFirstSemester(false); // 실제 성적표를 올렸으니 1학년 1학기 전용 플로우 플래그는 확실히 꺼둔다
         finishAnalysis();
         return;
       }

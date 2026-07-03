@@ -14,3 +14,24 @@ export const generateTimetable = (payload, file) => {
   formData.append('file', file)
   return api.post('/timetables/generate', formData).then((r) => r.data)
 }
+
+// TimetableCombinationResponseDto(1학년 전용 응답)의 offerings[]를
+// TimetableRecommendationResponseDto의 courses[] 모양으로 맞춰서
+// TimetableResultPage.jsx의 toCard()가 두 응답을 구분 없이 처리하게 한다.
+// (offerings[].times[]는 room이 시간 항목마다 있어 첫 시간의 room을 과목 room으로 쓴다 — 보통 같은 강의실이라 문제 없음)
+const toGenerateShape = (combo) => ({
+  timetableId: combo.timetableId,
+  courses: (combo.offerings ?? []).map((o) => ({
+    courseName: o.courseName,
+    category: o.category,
+    professor: o.professor,
+    credits: o.credits,
+    room: o.times?.[0]?.room,
+    times: (o.times ?? []).map(({ dayOfWeek, startTime, endTime }) => ({ dayOfWeek, startTime, endTime })),
+  })),
+})
+
+// POST /timetables/first-year/first-semester — 1학년 1학기는 이수 과목이 없어 엑셀이 필요 없다.
+// 조건(JSON)만 보내면 백엔드가 교양필수·전공탐색 강좌로 시간표를 짜서 돌려준다.
+export const generateFirstYearFirstSemester = (payload) =>
+  api.post('/timetables/first-year/first-semester', payload).then((r) => r.data.map(toGenerateShape))
