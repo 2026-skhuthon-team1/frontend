@@ -23,7 +23,7 @@ export function useTimetableInput() {
 
   // TimetableGenerateRequestDto 필드명에 맞춰 store 값을 매핑한다
   // completedCourseCodes는 백엔드가 엑셀 파일에서 직접 파싱해서 제외하므로 요청에 넣지 않는다
-  // includeSocialService는 DTO에 없는 필드라 요청에서 제외한다
+  // generalRequiredCourses(필수 교양 과목 코드)는 아직 이걸 고르는 화면이 store에 연결돼 있지 않아 빈 배열로 보낸다
   const submit = () => {
     if (!store.transcriptFile) {
       navigate('/upload')
@@ -37,6 +37,8 @@ export function useTimetableInput() {
         targetGeneralCredits: store.generalCredits,
         freeDays: store.offDays,
         excludeFirstPeriod: store.avoidFirstClass,
+        includeSocialService: store.includeSocialService,
+        generalRequiredCourses: [],
       },
       file: store.transcriptFile,
     })
