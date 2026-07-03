@@ -76,6 +76,7 @@ function toCard(combo, index, excludeFirstPeriod) {
     name: fixMojibake(s.course.courseName),
     room: s.course.room,
     type: s.course.category,
+    professor: fixMojibake(s.course.professor),
     day: DAYS.indexOf(s.day),
     slot: Math.round((toMin(s.startTime) - BASE_MIN) / SLOT_MIN),
     span: Math.max(1, Math.round((toMin(s.endTime) - toMin(s.startTime)) / SLOT_MIN)),
@@ -258,6 +259,7 @@ export default function TimetableResultPage() {
                         <p className="text-[10px] font-bold leading-tight truncate">{course.name}</p>
                         <p className="text-[8px] leading-tight mt-0.5 truncate opacity-80">{course.room}</p>
                         <p className="text-[8px] leading-tight truncate opacity-80">{course.type}</p>
+                         <p className="text-[8px] leading-tight truncate opacity-80">{course.professor}</p>
                       </div>
                     ))}
                 </div>

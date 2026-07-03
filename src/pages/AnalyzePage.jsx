@@ -135,9 +135,31 @@ export default function Analyze() {
           </div>
         )}
 
+        <div className="flex items-center justify-between gap-4 bg-primary-50 border border-primary-100 rounded-2xl px-5 py-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 shrink-0 bg-white rounded-xl flex items-center justify-center">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#5ea500" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                <path d="M6 12v5c3 3 9 3 12 0v-5" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-800">혹시 신입생(1학년)이신가요?</p>
+              <p className="text-[12px] text-gray-500 leading-relaxed">
+                신입생은 이수한 성적이 없으니 바로 시작할 수 있어요.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/courses')}
+            className="shrink-0 px-4 py-2.5 text-[13px] font-bold text-primary-600 bg-white border border-primary-200 rounded-lg hover:bg-primary-100 transition">
+            네, 신입생입니다
+          </button>
+        </div>
+
         <button
           disabled={!analyzed}
-          onClick={() => navigate('/input')}
+          onClick={() => navigate('/courses')}
           className={`block mx-auto px-8 py-[13px] text-sm font-bold rounded-lg transition ${
             analyzed
               ? 'text-white bg-primary-500 hover:bg-primary-600 cursor-pointer'

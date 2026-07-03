@@ -5,7 +5,7 @@ import { useMajorOptions } from '../hooks/useMajorOptions'
 import TopBar from '../components/TopBar'
 
 const DAYS = ['월', '화', '수', '목', '금']
-const GRADES = [2, 3, 4] // 1학년은 아직 시간표 입력 대상이 아니므로 제외
+const GRADES = [1, 2, 3, 4] // 1학년은 아직 시간표 입력 대상이 아니므로 제외
 
 function SectionRow({ label, description, children }) {
   return (
