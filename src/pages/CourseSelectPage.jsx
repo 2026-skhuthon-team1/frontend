@@ -1,15 +1,20 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import TopBar from '../components/TopBar';
 import { useTimetableStore } from '../store/timetableStore';
+import { getOfferings } from '../api/courses';
+import { fixMojibake } from '../utils/mojibake';
 
-const INITIAL_COURSES = [
-  { id: 1, name: '대학생활세미나', color: 'blue', professor: '', slot: 0 },
-  { id: 2, name: '말과글', color: 'purple', professor: '', slot: 0 },
-  { id: 3, name: '인권과 평화', color: 'orange', professor: '', slot: 0 },
-  { id: 4, name: '과학기술과에콜로지', color: 'teal', professor: '', slot: 0 },
-  { id: 5, name: '디지털리터러시', color: 'pink', professor: '', slot: 0 },
-]
+// 1학년 1학기 필수 교양 5과목 — GET /courses/offerings 응답의 courseName과 정확히 일치해야 분반을 찾을 수 있다
+// 대학생활세미나는 전원 필수 수강이라 "안 듣습니다"로 뺄 수 없다
+const FIXED_COURSES = [
+  { name: '대학생활세미나', color: 'blue', excludable: false },
+  { name: '말과글', color: 'purple', excludable: true },
+  { name: '인권과평화', color: 'orange', excludable: true },
+  { name: '과학기술과에콜로지', color: 'teal', excludable: true },
+  { name: '디지털리터러시', color: 'pink', excludable: true },
+];
 
 const NUM_COLOR = {
   blue: 'bg-blue-50 text-blue-600',
@@ -19,144 +24,103 @@ const NUM_COLOR = {
   pink: 'bg-pink-50 text-pink-600',
 };
 
-// 백엔드 /courses/offerings가 500을 던져서(분반 정보를 못 받아옴) 1학년 필수 교양 실제 분반표(수강신청 시간표)를 정적으로 박아둔다.
-// 교수님마다 여는 요일/시간이 달라서(예: 말과글 오현화는 4개, 박주혜는 1개) 분반 단위로 갖고 있어야
-// 교수님 선택 후 그 교수님이 실제로 여는 시간대만 보여줄 수 있다.
-// 백엔드가 고쳐지면 이 목록은 지우고 /courses/offerings 조회로 되돌리면 된다.
-const OFFERINGS = {
-  '대학생활세미나': [
-    { professor: '김혜인', day: '금', start: '13:00', end: '14:50' },
-    { professor: '김아름', day: '금', start: '13:00', end: '14:50' },
-    { professor: '윤영도', day: '금', start: '13:00', end: '14:50' },
-    { professor: '송재민', day: '금', start: '13:00', end: '14:50' },
-    { professor: '김용미', day: '금', start: '13:00', end: '14:50' },
-    { professor: '황준서', day: '금', start: '13:00', end: '14:50' },
-    { professor: '유철규', day: '금', start: '13:00', end: '14:50' },
-    { professor: '김태경', day: '금', start: '13:00', end: '14:50' },
-    { professor: '최정태', day: '금', start: '13:00', end: '14:50' },
-    { professor: '윤장열', day: '금', start: '13:00', end: '14:50' },
-    { professor: '이원정', day: '금', start: '13:00', end: '14:50' },
-    { professor: '오세현', day: '금', start: '13:00', end: '14:50' },
-    { professor: '김수림', day: '금', start: '13:00', end: '14:50' },
-    { professor: '곽승우', day: '금', start: '13:00', end: '14:50' },
-    { professor: '김선형', day: '금', start: '13:00', end: '14:50' },
-    { professor: '김명철', day: '금', start: '13:00', end: '14:50' },
-    { professor: '박정식', day: '금', start: '13:00', end: '14:50' },
-    { professor: '김덕봉', day: '금', start: '13:00', end: '14:50' },
-    { professor: '박남기', day: '금', start: '13:00', end: '14:50' },
-    { professor: '김병수', day: '금', start: '13:00', end: '14:50' },
-    { professor: '윤명호', day: '금', start: '13:00', end: '14:50' },
-    { professor: '이해청', day: '금', start: '13:00', end: '14:50' },
-    { professor: '김기명', day: '금', start: '13:00', end: '14:50' },
-    { professor: '이현아', day: '금', start: '13:00', end: '14:50' },
-  ],
-  '말과글': [
-    { professor: '오현화', day: '화', start: '09:00', end: '10:50' },
-    { professor: '오현화', day: '화', start: '11:00', end: '12:50' },
-    { professor: '오현화', day: '목', start: '09:00', end: '10:50' },
-    { professor: '오현화', day: '목', start: '11:00', end: '12:50' },
-    { professor: '문장원', day: '화', start: '09:00', end: '10:50' },
-    { professor: '문장원', day: '화', start: '11:00', end: '12:50' },
-    { professor: '곽승숙', day: '목', start: '09:00', end: '10:50' },
-    { professor: '곽승숙', day: '목', start: '11:00', end: '12:50' },
-    { professor: '박주혜', day: '목', start: '09:00', end: '10:50' },
-  ],
-  '인권과 평화': [
-    { professor: '조경희', day: '금', start: '10:00', end: '11:50' },
-    { professor: '강성현', day: '금', start: '10:00', end: '11:50' },
-    { professor: '이상윤', day: '금', start: '10:00', end: '11:50' },
-    { professor: '오영숙', day: '금', start: '10:00', end: '11:50' },
-    { professor: '황준서', day: '금', start: '10:00', end: '11:50' },
-  ],
-  '과학기술과에콜로지': [
-    { professor: '김명진', day: '화', start: '09:00', end: '10:50' },
-    { professor: '김명진', day: '화', start: '11:00', end: '12:50' },
-    { professor: '김명철, 신익상', day: '화', start: '09:00', end: '10:50' },
-    { professor: '김명철, 신익상', day: '화', start: '11:00', end: '12:50' },
-    { professor: '신익상, 김명철', day: '화', start: '09:00', end: '10:50' },
-    { professor: '신익상, 김명철', day: '화', start: '11:00', end: '12:50' },
-  ],
-  '디지털리터러시': [
-    { professor: '윤명호', day: '금', start: '10:00', end: '11:50' },
-    { professor: '이해신', day: '금', start: '10:00', end: '11:50' },
-    { professor: '김덕봉', day: '금', start: '10:00', end: '11:50' },
-    { professor: '이하규', day: '금', start: '10:00', end: '11:50' },
-    { professor: '홍성준', day: '금', start: '10:00', end: '11:50' },
-    { professor: '곽승우', day: '금', start: '10:00', end: '11:50' },
-    { professor: '공준욱', day: '금', start: '10:00', end: '11:50' },
-  ],
-};
+const timeLabel = (offering) =>
+  (offering.times ?? [])
+    .map((t) => `${t.dayOfWeek} ${t.startTime.slice(0, 5)}~${t.endTime.slice(0, 5)}`)
+    .join(', ');
 
-function CourseRow({ course, index, isExcluded, onSelectProfessor, onSelectSlot, onToggleExclude }) {
-  const sections = OFFERINGS[course.name] ?? [];
+function CourseRow({ name, color, excludable, index, sections, professor, offeringId, isExcluded, onSelectProfessor, onSelectOffering, onToggleExclude }) {
   const professors = [...new Set(sections.map((s) => s.professor))];
-  const professorSections = sections.filter((s) => s.professor === course.professor);
+  const professorSections = sections.filter((s) => s.professor === professor);
   const hasMultipleSlots = professorSections.length > 1;
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white px-6 py-5 flex items-center gap-4 transition">
-      <span className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-sm font-bold ${NUM_COLOR[course.color]}`}>
+      <span className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-sm font-bold ${NUM_COLOR[color]}`}>
         {String(index + 1).padStart(2, '0')}
       </span>
 
-      <p className="font-bold text-[15px] text-gray-800">{course.name}</p>
+      <p className="font-bold text-[15px] text-gray-800">{fixMojibake(name)}</p>
 
       <select
-        value={course.professor}
+        value={professor}
         disabled={isExcluded}
-        onChange={(e) => onSelectProfessor(course.id, e.target.value)}
+        onChange={(e) => onSelectProfessor(name, e.target.value)}
         className="w-36 shrink-0 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[13px] text-gray-700 outline-none focus:border-primary-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
         <option value="">교수님 선택</option>
-        {professors.map((p) => <option key={p} value={p}>{p}</option>)}
+        {professors.map((p) => <option key={p} value={p}>{fixMojibake(p)}</option>)}
       </select>
 
       {hasMultipleSlots && (
         <select
-          value={course.slot}
+          value={offeringId ?? ''}
           disabled={isExcluded}
-          onChange={(e) => onSelectSlot(course.id, Number(e.target.value))}
+          onChange={(e) => onSelectOffering(name, Number(e.target.value))}
           className="shrink-0 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[13px] text-gray-700 outline-none focus:border-primary-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
-          {professorSections.map((s, i) => <option key={i} value={i}>{`${s.day} ${s.start}~${s.end}`}</option>)}
+          {professorSections.map((s) => <option key={s.offeringId} value={s.offeringId}>{timeLabel(s)}</option>)}
         </select>
       )}
 
-      <button
-        onClick={() => onToggleExclude(course.id)}
-        className={`ml-auto shrink-0 px-4 py-2 rounded-lg text-[13px] font-bold transition ${
-          isExcluded
-            ? 'bg-red-500 text-white hover:bg-red-600'
-            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-        }`}>
-        이 과목은 안 듣습니다
-      </button>
+      {excludable && (
+        <button
+          onClick={() => onToggleExclude(name)}
+          className={`ml-auto shrink-0 px-4 py-2 rounded-lg text-[13px] font-bold transition ${
+            isExcluded
+              ? 'bg-red-500 text-white hover:bg-red-600'
+              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+          }`}>
+          이 과목은 안 듣습니다
+        </button>
+      )}
     </div>
   );
 }
 
 export default function CourseSelectPage() {
   const navigate = useNavigate();
-  const setTranscriptFile = useTimetableStore((s) => s.setTranscriptFile);
-  const [courses, setCourses] = useState(INITIAL_COURSES);
+  const setFirstYearFirstSemester = useTimetableStore((s) => s.setFirstYearFirstSemester);
+  const setFixedCourses = useTimetableStore((s) => s.setFixedCourses);
+  // useMajorOptions와 같은 쿼리키를 써서 GET /courses/offerings 응답을 그대로 공유(캐시)한다
+  const { data: offerings = [] } = useQuery({
+    queryKey: ['courses', 'offerings'],
+    queryFn: getOfferings,
+    staleTime: Infinity,
+  });
+
+  // 과목별 선택 상태 — professor 미선택 시 offeringId는 null
+  const [selections, setSelections] = useState(() =>
+    Object.fromEntries(FIXED_COURSES.map((c) => [c.name, { professor: '', offeringId: null }]))
+  );
   const [excluded, setExcluded] = useState([]);
 
-  const toggleExclude = (id) =>
-    setExcluded((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  const toggleExclude = (name) =>
+    setExcluded((prev) => prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name]);
 
-  // 신입생은 이수 과목이 없어 업로드할 성적표가 없다 — /timetables/generate가 file 파트를 필수로 요구하므로
-  // 헤더 행만 있는 빈 성적표를 대신 채워 넣어 /input에서 바로 생성 요청을 보낼 수 있게 한다.
-  const startAsFreshman = async () => {
-    const res = await fetch('/freshman-transcript.xlsx');
-    const blob = await res.blob();
-    setTranscriptFile(new File([blob], 'freshman-transcript.xlsx', { type: blob.type }));
-    navigate('/input');
+  // 교수님을 바꾸면 그 교수님의 분반 목록이 통째로 달라지므로, 분반이 하나면 바로 그걸로 확정하고
+  // 여러 개면 일단 비워뒀다가 아래 select에서 고르게 한다
+  const selectProfessor = (name, professor) => {
+    const sections = offerings.filter((o) => o.courseName === name && o.professor === professor);
+    setSelections((prev) => ({
+      ...prev,
+      [name]: { professor, offeringId: sections.length === 1 ? sections[0].offeringId : null },
+    }));
   };
 
-  // 교수님을 바꾸면 그 교수님의 분반 목록이 통째로 달라지므로 슬롯 선택은 0번으로 초기화한다
-  const selectProfessor = (id, professor) =>
-    setCourses((prev) => prev.map((c) => c.id === id ? { ...c, professor, slot: 0 } : c));
+  const selectOffering = (name, offeringId) =>
+    setSelections((prev) => ({ ...prev, [name]: { ...prev[name], offeringId } }));
 
-  const selectSlot = (id, slot) =>
-    setCourses((prev) => prev.map((c) => c.id === id ? { ...c, slot } : c));
+  // 제외하지 않고 분반까지 확정한 과목만 fixedCourses로 보낸다 (GET /courses/offerings가 준 원본 객체 그대로 —
+  // 백엔드가 courseCode/times 등 전체 필드로 분반을 식별한다)
+  const buildFixedCourses = () =>
+    FIXED_COURSES.filter((c) => !excluded.includes(c.name) && selections[c.name].offeringId != null)
+      .map((c) => offerings.find((o) => o.offeringId === selections[c.name].offeringId))
+      .filter(Boolean);
+
+  const startAsFreshman = () => {
+    setFixedCourses(buildFixedCourses());
+    setFirstYearFirstSemester(true);
+    navigate('/input');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -171,14 +135,19 @@ export default function CourseSelectPage() {
         </div>
 
         <div className="flex flex-col gap-4 mb-8">
-          {courses.map((course, i) => (
+          {FIXED_COURSES.map((course, i) => (
             <CourseRow
-              key={course.id}
-              course={course}
+              key={course.name}
+              name={course.name}
+              color={course.color}
+              excludable={course.excludable}
               index={i}
-              isExcluded={excluded.includes(course.id)}
+              sections={offerings.filter((o) => o.courseName === course.name)}
+              professor={selections[course.name].professor}
+              offeringId={selections[course.name].offeringId}
+              isExcluded={excluded.includes(course.name)}
               onSelectProfessor={selectProfessor}
-              onSelectSlot={selectSlot}
+              onSelectOffering={selectOffering}
               onToggleExclude={toggleExclude}
             />
           ))}
