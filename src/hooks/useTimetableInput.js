@@ -9,13 +9,14 @@ export function useTimetableInput() {
 
   const mutation = useMutation({
     mutationFn: ({ payload, file }) => generateTimetable(payload, file),
-    // 응답은 { candidates: AiTimetableDto[] } — 0개면 결과 없음 화면으로 보낸다
+    // 응답은 AiTimetableDto[] 배열을 그대로 내려준다({ candidates: [] }로 감싸져 있지 않음)
+    // 0개면 결과 없음 화면으로 보낸다
     // candidates가 아직 3개로 안 추려져서 올 수 있어 프론트에서 상위 3개만 자른다
     // (백엔드가 AI 3개 선별을 붙이면 이 slice는 지워도 됨)
     onSuccess: (data) => {
-      const candidates = data.candidates ?? []
-      store.setCombinations(candidates.slice(0, 3))
-      navigate(candidates.length > 0 ? '/result' : '/result/empty')
+      console.log(data)
+      store.setCombinations(data.slice(0, 3))
+      navigate(data.length > 0 ? '/result' : '/result/empty')
     },
     onError: (e) => console.error(e.response?.data?.message ?? '오류가 발생했습니다.'),
   })

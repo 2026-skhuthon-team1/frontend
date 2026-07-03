@@ -5,6 +5,7 @@ import { Badge } from '../components/Badge'
 import { Button } from '../components/Button'
 import TopBar from '../components/TopBar'
 import { useTimetableStore } from '../store/timetableStore'
+import { useMajorOptions } from '../hooks/useMajorOptions'
 import { fixMojibake } from '../utils/mojibake'
 
 const TIMES = ['09:00', '10:30', '12:00', '13:30', '15:00', '16:30', '18:00']
@@ -33,17 +34,19 @@ const toMin = (hhmm) => {
   return h * 60 + m
 }
 
-// AiCourseDto.schedules 문자열("화 15:00~17:50")을 요일/시작/종료로 분해한다
-function parseSchedule(s) {
-  const [startTime, endTime] = s.slice(2).split('~')
-  return { day: s[0], startTime, endTime }
-}
-
 // 백엔드 응답(AiTimetableDto)을 화면에서 쓰는 카드 데이터로 변환한다
-// AiCourseDto엔 강의실·전공/교양 합계·공강 요일이 따로 없어서 courses[].schedules로부터 전부 계산한다
+// AiCourseDto.times: [{ dayOfWeek, startTime, endTime }] — 한 과목이 여러 요일에 걸릴 수 있어 flatMap으로 펼친다
+// startTime/endTime은 "HH:mm:ss"로 오므로 앞 5자리만 잘라 "HH:mm"으로 맞춘다
 function toCard(combo, index, excludeFirstPeriod) {
   const courses = combo.courses ?? []
-  const slots = courses.flatMap((c) => (c.schedules ?? []).map((s) => ({ course: c, ...parseSchedule(s) })))
+  const slots = courses.flatMap((c) =>
+    (c.times ?? []).map((t) => ({
+      course: c,
+      day: t.dayOfWeek,
+      startTime: t.startTime.slice(0, 5),
+      endTime: t.endTime.slice(0, 5),
+    }))
+  )
 
   const freeDays = DAYS.filter((d) => !slots.some((s) => s.day === d))
   const majorCredits = courses.filter((c) => c.category !== '교양').reduce((sum, c) => sum + c.credits, 0)
@@ -63,6 +66,7 @@ function toCard(combo, index, excludeFirstPeriod) {
 
   const blocks = slots.map((s) => ({
     name: fixMojibake(s.course.courseName),
+    room: s.course.room,
     type: s.course.category,
     day: DAYS.indexOf(s.day),
     slot: Math.round((toMin(s.startTime) - BASE_MIN) / SLOT_MIN),
@@ -84,6 +88,10 @@ export default function TimetableResultPage() {
   const navigate = useNavigate()
   const combinations = useTimetableStore((s) => s.combinations)
   const avoidFirstClass = useTimetableStore((s) => s.avoidFirstClass)
+  const { majors, majorCredits, generalCredits, grade, offDays } = useTimetableStore()
+  const majorOptions = useMajorOptions()
+  const majorsLabel = majors.map((m) => majorOptions.find((o) => o.value === m)?.label ?? m).join('·') || '미선택'
+  const offDaysLabel = offDays.length > 0 ? `${offDays.join('/')}요일` : '없음'
   const CARDS = useMemo(
     () => combinations.map((c, i) => toCard(c, i, avoidFirstClass)),
     [combinations, avoidFirstClass]
@@ -165,6 +173,16 @@ export default function TimetableResultPage() {
             </div>
           </div>
 
+          {/* 제출한 조건 요약 — 사용자가 입력한 조건을 다시 확인할 수 있도록 표시 */}
+          <div className="mb-4 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-5 py-4">
+            <p className="text-[13px] font-bold text-[#90a1b9] mb-2">현재 설정 조건</p>
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-[#314158]">
+              <span>전공 <span className="font-bold text-[#1d293d]">{majorsLabel}</span> | {grade}학년</span>
+              <span>목표학점 전공 {majorCredits} + 교양 {generalCredits}</span>
+              <span>공강요일 {offDaysLabel} | {avoidFirstClass ? '1교시 제외' : '1교시 무관'}</span>
+            </div>
+          </div>
+
           {/* 시간표 */}
           <div ref={timetableRef} className="border border-[#e2e8f0] rounded-xl overflow-hidden">
             {/* 요일 헤더 행 — 월/화/수/목/금 */}
@@ -233,7 +251,8 @@ export default function TimetableResultPage() {
                         }}
                       >
                         <p className="text-[10px] font-bold leading-tight truncate">{course.name}</p>
-                        <p className="text-[8px] leading-tight mt-0.5 truncate opacity-80">{course.type}</p>
+                        <p className="text-[8px] leading-tight mt-0.5 truncate opacity-80">{course.room}</p>
+                        <p className="text-[8px] leading-tight truncate opacity-80">{course.type}</p>
                       </div>
                     ))}
                 </div>

@@ -51,7 +51,7 @@ export default function Analyze() {
         setDoneSteps(step + 1);
         step += 1;
         next();
-      }, 1100);
+      }, 6000);
     };
     next();
   };
