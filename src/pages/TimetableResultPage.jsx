@@ -175,9 +175,6 @@ export default function TimetableResultPage() {
               <button onClick={saveAsImage} className="h-10 px-5 text-sm font-bold text-[#1d293d] bg-[#f1f5f9] rounded-xl hover:bg-[#e2e8f0] transition-colors">
                 이미지로 저장
               </button>
-              <Button variant="small" className="hover:bg-[#5ea500] transition-colors">
-                최종 선택 및 확정
-              </Button>
             </div>
           </div>
 

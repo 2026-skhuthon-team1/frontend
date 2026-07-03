@@ -6,7 +6,6 @@ import skhuLogo from '../assets/school.png';
 const NAV_ITEMS = [
   { label: '데이터 분석', prefixes: ['/upload'] },
   { label: '시간표 생성', prefixes: ['/input', '/result'] },
-  { label: '학업 리포트', prefixes: ['/report'] },
 ]
 
 export default function TopBar() {
