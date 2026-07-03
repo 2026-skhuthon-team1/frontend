@@ -106,7 +106,7 @@ export default function TimetableInputPage() {
               <input
                 type="range"
                 min={0}
-                max={18}
+                max={24}
                 step={1}
                 value={majorCredits}
                 onChange={(e) => setMajorCredits(Number(e.target.value))}
@@ -123,7 +123,7 @@ export default function TimetableInputPage() {
               <input
                 type="range"
                 min={0}
-                max={12}
+                max={24}
                 step={1}
                 value={generalCredits}
                 onChange={(e) => setGeneralCredits(Number(e.target.value))}
