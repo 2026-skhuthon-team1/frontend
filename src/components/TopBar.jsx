@@ -1,8 +1,17 @@
-import { useAppStore } from '../store/useAppStore';
+import { useLocation } from 'react-router-dom';
 import BrandMark from './BrandMark';
 import skhuLogo from '../assets/school.png';
 
+// 시간표 생성 흐름은 /input(입력), /result, /result/empty(결과) 세 경로를 모두 아우른다
+const NAV_ITEMS = [
+  { label: '데이터 분석', prefixes: ['/upload'] },
+  { label: '시간표 생성', prefixes: ['/input', '/result'] },
+  { label: '학업 리포트', prefixes: ['/report'] },
+]
+
 export default function TopBar() {
+  const { pathname } = useLocation();
+
   return (
     <header className="bg-white border-b border-gray-200 px-8 h-16 flex items-center justify-between sticky top-0 z-50">
       <div className="flex items-center gap-9">
@@ -13,9 +22,21 @@ export default function TopBar() {
           <span className="font-extrabold text-base tracking-tight">시간표짜조</span>
         </div>
         <nav className="flex gap-1">
-          <a className="px-3.5 py-2 text-sm font-bold text-primary-600 bg-primary-100 rounded-lg cursor-pointer">데이터 분석</a>
-          <a className="px-3.5 py-2 text-sm font-medium text-gray-400 rounded-lg cursor-pointer hover:text-gray-700 hover:bg-gray-50">시간표 생성</a>
-          <a className="px-3.5 py-2 text-sm font-medium text-gray-400 rounded-lg cursor-pointer hover:text-gray-700 hover:bg-gray-50">학업 리포트</a>
+          {NAV_ITEMS.map(({ label, prefixes }) => {
+            const isActive = prefixes.some((p) => pathname.startsWith(p))
+            return (
+              <a
+                key={label}
+                className={`px-3.5 py-2 text-sm rounded-lg cursor-pointer ${
+                  isActive
+                    ? 'font-bold text-primary-600 bg-primary-100'
+                    : 'font-medium text-gray-400 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {label}
+              </a>
+            )
+          })}
         </nav>
       </div>
      <div className="flex items-center gap-2">

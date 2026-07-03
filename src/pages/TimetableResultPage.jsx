@@ -14,7 +14,8 @@ const SLOT_H = 64
 const SLOT_MIN = 90
 const BASE_MIN = 9 * 60 // 09:00 기준 — 슬롯 인덱스 계산의 시작점
 
-// 과목 블록 색상 — category 문자열을 해시로 팔레트에 매핑해서 카테고리마다 일관된 색을 준다
+// 과목 블록 색상 — 전공필수/전공선택/교양 카테고리마다 고정된 색을 준다
+// (해시 매핑은 카테고리가 3개뿐이라 충돌 위험이 있어 명시적으로 지정한다)
 const PALETTE = [
   { bg: '#ecfcca', border: '#7ccf00', color: '#3c6300' },
   { bg: '#dbeafe', border: '#2b7fff', color: '#193cb8' },
@@ -23,7 +24,14 @@ const PALETTE = [
   { bg: '#fee2e2', border: '#fb2c36', color: '#9f0712' },
   { bg: '#fef9c3', border: '#f0b100', color: '#894b00' },
 ]
+const CATEGORY_COLOR = {
+  전공필수: PALETTE[1],
+  전공선택: PALETTE[0],
+  교양: PALETTE[2],
+}
 function colorFor(category) {
+  if (CATEGORY_COLOR[category]) return CATEGORY_COLOR[category]
+  // 알 수 없는 카테고리가 오면 예전처럼 해시로 팔레트에 매핑해 최소한 색은 부여한다
   let hash = 0
   for (const ch of category ?? '') hash = (hash * 31 + ch.charCodeAt(0)) % PALETTE.length
   return PALETTE[hash]
@@ -119,7 +127,7 @@ export default function TimetableResultPage() {
       <TopBar />
 
       {/* 본문 — 왼쪽 추천 목록 + 오른쪽 시간표 */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* 왼쪽 패널 — AI 추천 조합 목록 */}
         <aside className="w-[400px] shrink-0 bg-[#f8fafc] border-r border-[#f1f5f9] flex flex-col overflow-y-auto">
           <div className="px-6 py-4">
@@ -130,7 +138,7 @@ export default function TimetableResultPage() {
 
           <div className="flex flex-col gap-3 px-6 pb-6">
             {CARDS.map((combo) => {
-              const isSelected = combo.id === selectedId
+              const isSelected = combo.id === selected?.id
               return (
                 <button
                   key={combo.id}
@@ -184,7 +192,7 @@ export default function TimetableResultPage() {
           </div>
 
           {/* 시간표 */}
-          <div ref={timetableRef} className="border border-[#e2e8f0] rounded-xl overflow-hidden">
+          <div ref={timetableRef} className="shrink-0 border border-[#e2e8f0] rounded-xl overflow-hidden">
             {/* 요일 헤더 행 — 월/화/수/목/금 */}
             <div
               className="grid bg-[#f8fafc] border-b border-[#e2e8f0]"
