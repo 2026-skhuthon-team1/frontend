@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TopBar from '../components/TopBar';
+import { useTimetableStore } from '../store/timetableStore';
 
 const INITIAL_COURSES = [
   { id: 1, name: '대학생활세미나', color: 'blue', professor: '', slot: 0 },
@@ -134,11 +135,21 @@ function CourseRow({ course, index, isExcluded, onSelectProfessor, onSelectSlot,
 
 export default function CourseSelectPage() {
   const navigate = useNavigate();
+  const setTranscriptFile = useTimetableStore((s) => s.setTranscriptFile);
   const [courses, setCourses] = useState(INITIAL_COURSES);
   const [excluded, setExcluded] = useState([]);
 
   const toggleExclude = (id) =>
     setExcluded((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+
+  // 신입생은 이수 과목이 없어 업로드할 성적표가 없다 — /timetables/generate가 file 파트를 필수로 요구하므로
+  // 헤더 행만 있는 빈 성적표를 대신 채워 넣어 /input에서 바로 생성 요청을 보낼 수 있게 한다.
+  const startAsFreshman = async () => {
+    const res = await fetch('/freshman-transcript.xlsx');
+    const blob = await res.blob();
+    setTranscriptFile(new File([blob], 'freshman-transcript.xlsx', { type: blob.type }));
+    navigate('/input');
+  };
 
   // 교수님을 바꾸면 그 교수님의 분반 목록이 통째로 달라지므로 슬롯 선택은 0번으로 초기화한다
   const selectProfessor = (id, professor) =>
@@ -178,7 +189,7 @@ export default function CourseSelectPage() {
             설정한 과목과 시간대를 기반으로 AI가 최적의 전체 시간표 조합을 생성해요.
           </p>
           <div className="ml-auto flex gap-3">
-            <button onClick={() => navigate('/input')}
+            <button onClick={startAsFreshman}
               className="px-6 py-3 text-sm font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition">
               1학년 1학기입니다
             </button>
