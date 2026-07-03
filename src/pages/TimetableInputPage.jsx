@@ -200,8 +200,8 @@ export default function TimetableInputPage() {
             <Button variant="secondary" onClick={() => navigate(-1)} className="hover:bg-[#90a1b9] hover:text-white transition-colors">
               이전으로
             </Button>
-            <Button variant="primary" onClick={submit} disabled={loading} className="px-8 hover:bg-[#5ea500] transition-colors">
-              {loading ? '생성 중...' : 'AI 시간표 생성하기'}
+            <Button variant="primary" onClick={submit} disabled={loading || majors.length === 0} className="px-8 hover:bg-[#5ea500] transition-colors">
+              {loading ? '생성 중...' : majors.length === 0 ? '전공을 선택해 주세요' : 'AI 시간표 생성하기'}
             </Button>
           </div>
         </div>

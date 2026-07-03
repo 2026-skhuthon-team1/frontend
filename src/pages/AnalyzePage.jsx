@@ -11,7 +11,7 @@ const STEPS = [
   '들을 수 있는 과목 추리기',
 ];
 
-export default function Analyze({ nextPath = '/courses', showFreshmanPrompt = true }) {
+export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true }) {
   const navigate = useNavigate();
   const {
     analyzing, progress, doneSteps, activeStep, analyzed,
