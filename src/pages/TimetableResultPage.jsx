@@ -34,23 +34,19 @@ const toMin = (hhmm) => {
   return h * 60 + m
 }
 
-// AiCourseDto.schedules 문자열("화 15:00~17:50")을 요일/시작/종료로 분해한다
-function parseSchedule(s) {
-  const [startTime, endTime] = s.slice(2).split('~')
-  return { day: s[0], startTime, endTime }
-}
-
-// 백엔드 응답(AiTimetableDto)을 화면에서 쓰는 카드 데이터로 변환한다
-// AiCourseDto엔 강의실·전공/교양 합계·공강 요일이 따로 없어서 courses[].schedules로부터 전부 계산한다
+// 백엔드 응답(TimetableRecommendationResponseDto)을 화면에서 쓰는 카드 데이터로 변환한다
+// RecommendedCourseDto엔 전공/교양 합계·공강 요일이 따로 없어서 courses[].times로부터 전부 계산한다
 function toCard(combo, index, excludeFirstPeriod) {
   const courses = combo.courses ?? []
-  const slots = courses.flatMap((c) => (c.schedules ?? []).map((s) => ({ course: c, ...parseSchedule(s) })))
+  const slots = courses.flatMap((c) =>
+    (c.times ?? []).map((t) => ({ course: c, day: t.dayOfWeek, startTime: t.startTime, endTime: t.endTime }))
+  )
 
   const freeDays = DAYS.filter((d) => !slots.some((s) => s.day === d))
   const majorCredits = courses.filter((c) => c.category !== '교양').reduce((sum, c) => sum + c.credits, 0)
   const generalCredits = courses.filter((c) => c.category === '교양').reduce((sum, c) => sum + c.credits, 0)
   const totalCredits = majorCredits + generalCredits
-  const noFirstPeriod = !slots.some((s) => s.startTime === '09:00')
+  const noFirstPeriod = !slots.some((s) => toMin(s.startTime) === toMin('09:00'))
   const hasLunchClass = slots.some((s) => toMin(s.startTime) < toMin('13:30') && toMin(s.endTime) > toMin('12:00'))
 
   const tags = []
@@ -65,6 +61,8 @@ function toCard(combo, index, excludeFirstPeriod) {
   const blocks = slots.map((s) => ({
     name: fixMojibake(s.course.courseName),
     type: s.course.category,
+    professor: fixMojibake(s.course.professor),
+    room: s.course.room,
     day: DAYS.indexOf(s.day),
     slot: Math.round((toMin(s.startTime) - BASE_MIN) / SLOT_MIN),
     span: Math.max(1, Math.round((toMin(s.endTime) - toMin(s.startTime)) / SLOT_MIN)),
@@ -249,6 +247,7 @@ export default function TimetableResultPage() {
                       >
                         <p className="text-[10px] font-bold leading-tight truncate">{course.name}</p>
                         <p className="text-[8px] leading-tight mt-0.5 truncate opacity-80">{course.type}</p>
+                        <p className="text-[8px] leading-tight truncate opacity-80">{course.professor} · {course.room}</p>
                       </div>
                     ))}
                 </div>
