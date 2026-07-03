@@ -1,5 +1,7 @@
 import { useAppStore } from '../store/useAppStore';
 import BrandMark from './BrandMark';
+import kakaoLogo from '../assets/kakao.png';
+import googleLogo from '../assets/google.png';
 
 export default function Login() {
   const { loginId, loginPw, setLoginId, setLoginPw, goTo } = useAppStore();
@@ -39,9 +41,13 @@ export default function Login() {
         <p className="text-center text-xs text-gray-400 my-[26px]">간편 로그인</p>
         <div className="flex gap-3 justify-center">
           <button onClick={() => goTo('analyze')}
-            className="w-11 h-11 rounded-full bg-kakao text-gray-800 flex items-center justify-center font-bold transition hover:brightness-95">💬</button>
+            className="w-11 h-11 rounded-full bg-kakao flex items-center justify-center transition hover:brightness-95">
+            <img src={kakaoLogo} alt="카카오 로그인" className="w-6 h-6 object-contain" />
+          </button>
           <button onClick={() => goTo('analyze')}
-            className="w-11 h-11 rounded-full bg-white border border-gray-200 text-gray-600 flex items-center justify-center font-bold transition hover:bg-gray-50">G</button>
+            className="w-11 h-11 rounded-full bg-[#f8f9fa] border border-gray-200 flex items-center justify-center transition hover:brightness-95">
+            <img src={googleLogo} alt="구글 로그인" className="w-6 h-6 object-contain" />
+          </button>
           <button onClick={() => goTo('analyze')}
             className="w-11 h-11 rounded-full bg-naver text-white flex items-center justify-center font-bold transition hover:brightness-95">N</button>
         </div>
