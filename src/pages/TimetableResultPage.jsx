@@ -125,7 +125,8 @@ export default function TimetableResultPage() {
 
           <div className="flex flex-col gap-3 px-6 pb-6">
             {CARDS.map((combo) => {
-              const isSelected = combo.id === selectedId
+              // selectedId가 아직 없으면(첫 화면) 오른쪽에 기본 표시 중인 1순위(selected)가 선택된 것처럼 보이게 한다
+              const isSelected = combo.id === selected?.id
               return (
                 <button
                   key={combo.id}
