@@ -14,8 +14,7 @@ const SLOT_H = 64
 const SLOT_MIN = 90
 const BASE_MIN = 9 * 60 // 09:00 기준 — 슬롯 인덱스 계산의 시작점
 
-// 과목 블록 색상 — 전공필수/전공선택/교양 카테고리마다 고정된 색을 준다
-// (해시 매핑은 카테고리가 3개뿐이라 충돌 위험이 있어 명시적으로 지정한다)
+// 과목 블록 색상 — category 문자열을 해시로 팔레트에 매핑해서 카테고리마다 일관된 색을 준다
 const PALETTE = [
   { bg: '#ecfcca', border: '#7ccf00', color: '#3c6300' },
   { bg: '#dbeafe', border: '#2b7fff', color: '#193cb8' },
@@ -24,14 +23,7 @@ const PALETTE = [
   { bg: '#fee2e2', border: '#fb2c36', color: '#9f0712' },
   { bg: '#fef9c3', border: '#f0b100', color: '#894b00' },
 ]
-const CATEGORY_COLOR = {
-  전공필수: PALETTE[1],
-  전공선택: PALETTE[0],
-  교양: PALETTE[2],
-}
 function colorFor(category) {
-  if (CATEGORY_COLOR[category]) return CATEGORY_COLOR[category]
-  // 알 수 없는 카테고리가 오면 예전처럼 해시로 팔레트에 매핑해 최소한 색은 부여한다
   let hash = 0
   for (const ch of category ?? '') hash = (hash * 31 + ch.charCodeAt(0)) % PALETTE.length
   return PALETTE[hash]
@@ -42,19 +34,17 @@ const toMin = (hhmm) => {
   return h * 60 + m
 }
 
+// AiCourseDto.schedules 문자열("화 15:00~17:50")을 요일/시작/종료로 분해한다
+function parseSchedule(s) {
+  const [startTime, endTime] = s.slice(2).split('~')
+  return { day: s[0], startTime, endTime }
+}
+
 // 백엔드 응답(AiTimetableDto)을 화면에서 쓰는 카드 데이터로 변환한다
-// AiCourseDto.times: [{ dayOfWeek, startTime, endTime }] — 한 과목이 여러 요일에 걸릴 수 있어 flatMap으로 펼친다
-// startTime/endTime은 "HH:mm:ss"로 오므로 앞 5자리만 잘라 "HH:mm"으로 맞춘다
+// AiCourseDto엔 강의실·전공/교양 합계·공강 요일이 따로 없어서 courses[].schedules로부터 전부 계산한다
 function toCard(combo, index, excludeFirstPeriod) {
   const courses = combo.courses ?? []
-  const slots = courses.flatMap((c) =>
-    (c.times ?? []).map((t) => ({
-      course: c,
-      day: t.dayOfWeek,
-      startTime: t.startTime.slice(0, 5),
-      endTime: t.endTime.slice(0, 5),
-    }))
-  )
+  const slots = courses.flatMap((c) => (c.schedules ?? []).map((s) => ({ course: c, ...parseSchedule(s) })))
 
   const freeDays = DAYS.filter((d) => !slots.some((s) => s.day === d))
   const majorCredits = courses.filter((c) => c.category !== '교양').reduce((sum, c) => sum + c.credits, 0)
@@ -74,9 +64,7 @@ function toCard(combo, index, excludeFirstPeriod) {
 
   const blocks = slots.map((s) => ({
     name: fixMojibake(s.course.courseName),
-    room: s.course.room,
     type: s.course.category,
-    professor: fixMojibake(s.course.professor),
     day: DAYS.indexOf(s.day),
     slot: Math.round((toMin(s.startTime) - BASE_MIN) / SLOT_MIN),
     span: Math.max(1, Math.round((toMin(s.endTime) - toMin(s.startTime)) / SLOT_MIN)),
@@ -128,7 +116,7 @@ export default function TimetableResultPage() {
       <TopBar />
 
       {/* 본문 — 왼쪽 추천 목록 + 오른쪽 시간표 */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden">
         {/* 왼쪽 패널 — AI 추천 조합 목록 */}
         <aside className="w-[400px] shrink-0 bg-[#f8fafc] border-r border-[#f1f5f9] flex flex-col overflow-y-auto">
           <div className="px-6 py-4">
@@ -139,7 +127,7 @@ export default function TimetableResultPage() {
 
           <div className="flex flex-col gap-3 px-6 pb-6">
             {CARDS.map((combo) => {
-              const isSelected = combo.id === selected?.id
+              const isSelected = combo.id === selectedId
               return (
                 <button
                   key={combo.id}
@@ -176,6 +164,9 @@ export default function TimetableResultPage() {
               <button onClick={saveAsImage} className="h-10 px-5 text-sm font-bold text-[#1d293d] bg-[#f1f5f9] rounded-xl hover:bg-[#e2e8f0] transition-colors">
                 이미지로 저장
               </button>
+              <Button variant="small" className="hover:bg-[#5ea500] transition-colors">
+                최종 선택 및 확정
+              </Button>
             </div>
           </div>
 
@@ -190,7 +181,7 @@ export default function TimetableResultPage() {
           </div>
 
           {/* 시간표 */}
-          <div ref={timetableRef} className="shrink-0 border border-[#e2e8f0] rounded-xl overflow-hidden">
+          <div ref={timetableRef} className="border border-[#e2e8f0] rounded-xl overflow-hidden">
             {/* 요일 헤더 행 — 월/화/수/목/금 */}
             <div
               className="grid bg-[#f8fafc] border-b border-[#e2e8f0]"
@@ -257,9 +248,7 @@ export default function TimetableResultPage() {
                         }}
                       >
                         <p className="text-[10px] font-bold leading-tight truncate">{course.name}</p>
-                        <p className="text-[8px] leading-tight mt-0.5 truncate opacity-80">{course.room}</p>
-                        <p className="text-[8px] leading-tight truncate opacity-80">{course.type}</p>
-                         <p className="text-[8px] leading-tight truncate opacity-80">{course.professor}</p>
+                        <p className="text-[8px] leading-tight mt-0.5 truncate opacity-80">{course.type}</p>
                       </div>
                     ))}
                 </div>
