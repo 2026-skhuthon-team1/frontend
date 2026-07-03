@@ -1,14 +1,6 @@
 import { create } from 'zustand';
 
 export const useAppStore = create((set) => ({
-  screen: 'login',
-  goTo: (screen) => set({ screen }),
-
-  loginId: '',
-  loginPw: '',
-  setLoginId: (loginId) => set({ loginId }),
-  setLoginPw: (loginPw) => set({ loginPw }),
-
   analyzing: false,
   progress: 0,
   doneSteps: 0,
