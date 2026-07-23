@@ -111,12 +111,21 @@ export default function CourseSelectPage() {
   const selectOffering = (name, offeringId) =>
     setSelections((prev) => ({ ...prev, [name]: { ...prev[name], offeringId } }));
 
-  // 제외하지 않고 분반까지 확정한 과목만 fixedCourses로 보낸다 (GET /courses/general-required-offerings가 준 원본 객체 그대로 —
-  // 백엔드가 courseCode/times 등 전체 필드로 분반을 식별한다)
+  // 제외하지 않고 분반까지 확정한 과목만 백엔드 GeneralRequiredCourseSelectionDto 모양으로 보낸다.
+  // offering 객체를 통째로 보내면 시간이 times[] 안에 중첩돼 백엔드엔 day/start/end=null로 도착하고,
+  // 그러면 같은 교수의 분반이 여러 개일 때(예: 말과글 오현화 4분반) 백엔드가 첫 분반을 임의로 골라
+  // 사용자가 고른 시간이 무시된다. 그래서 선택 분반의 첫 강의시간을 day/start/end로 풀어서 보낸다.
   const buildFixedCourses = () =>
     FIXED_COURSES.filter((c) => !excluded.includes(c.name) && selections[c.name].offeringId != null)
       .map((c) => offerings.find((o) => o.offeringId === selections[c.name].offeringId))
-      .filter(Boolean);
+      .filter(Boolean)
+      .map((o) => ({
+        courseName: o.courseName,
+        professor: o.professor,
+        day: o.times?.[0]?.dayOfWeek,
+        start: o.times?.[0]?.startTime,
+        end: o.times?.[0]?.endTime,
+      }));
 
   // 두 학기 모두 여기서 고른 교양필수 분반을 그대로 넘기고, 전공 학점을 전공탐색 상한(6)으로 낮춘다.
   // 플래그는 상호배타로 정리한다.

@@ -16,7 +16,7 @@ export const useTimetableStore = create(persist((set) => ({
   transcriptFile: null, // /upload에서 선택한 엑셀 원본 파일 — /input 제출 시 조건과 함께 /timetables/generate로 전송
   firstYearFirstSemester: false, // CourseSelectPage에서 "1학년 1학기입니다" 선택 시 true — /input 제출 시 엑셀 없이 /timetables/first-year/first-semester로 전송
   firstYearSecondSemester: false, // "1학년 2학기입니다" 선택 시 true — 성적표 업로드 후 /input 제출 시 /timetables/first-year/second-semester로 전송
-  fixedCourses: [], // CourseSelectPage에서 고른 교양필수 분반(GET /courses/general-required-offerings 응답 그대로) — FirstYearTimetableRequestDto.fixedCourses로 전송
+  fixedCourses: [], // CourseSelectPage에서 고른 교양필수 분반 — {courseName, professor, day, start, end}(GeneralRequiredCourseSelectionDto 모양)로 FirstYearTimetableRequestDto.fixedCourses에 전송
   combinations: [], // POST /timetables/generate 응답의 candidates — /result 페이지가 이 값을 읽어서 렌더링
 
   setMajorCredits: (majorCredits) => set({ majorCredits }),
