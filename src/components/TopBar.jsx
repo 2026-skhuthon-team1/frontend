@@ -1,4 +1,4 @@
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import BrandMark from './BrandMark';
 import skhuLogo from '../assets/school.png';
 
@@ -24,8 +24,9 @@ export default function TopBar() {
           {NAV_ITEMS.map(({ label, prefixes }) => {
             const isActive = prefixes.some((p) => pathname.startsWith(p))
             return (
-              <a
+              <Link
                 key={label}
+                to={prefixes[0]}
                 className={`px-3.5 py-2 text-sm rounded-lg cursor-pointer ${
                   isActive
                     ? 'font-bold text-primary-600 bg-primary-100'
@@ -33,7 +34,7 @@ export default function TopBar() {
                 }`}
               >
                 {label}
-              </a>
+              </Link>
             )
           })}
         </nav>
