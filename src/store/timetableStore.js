@@ -37,6 +37,16 @@ export const useTimetableStore = create(persist((set) => ({
   setCombinations: (combinations) => set({ combinations }),
 }), {
   name: 'timetable-result',
-  // transcriptFile은 File 객체라 직렬화 불가 — combinations만 저장해 /result 새로고침 시 결과 복구
-  partialize: (s) => ({ combinations: s.combinations }),
+  // transcriptFile은 File 객체라 직렬화 불가 — 저장 제외.
+  // /result 새로고침 시 결과(combinations)와 요약 헤더가 읽는 조건 필드까지 복구한다.
+  // avoidFirstClass는 toCard 카드 생성에도 쓰여 빠지면 카드가 달라진다.
+  partialize: (s) => ({
+    combinations: s.combinations,
+    avoidFirstClass: s.avoidFirstClass,
+    majors: s.majors,
+    majorCredits: s.majorCredits,
+    generalCredits: s.generalCredits,
+    grade: s.grade,
+    offDays: s.offDays,
+  }),
 }))
