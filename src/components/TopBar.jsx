@@ -14,12 +14,12 @@ export default function TopBar() {
   return (
     <header className="bg-white border-b border-gray-200 px-8 h-16 flex items-center justify-between sticky top-0 z-50">
       <div className="flex items-center gap-9">
-        <div className="flex items-center gap-2.5">
+        <Link to="/upload" className="flex items-center gap-2.5 cursor-pointer">
           <div className="w-[30px] h-[30px] bg-primary-500 rounded-lg flex items-center justify-center p-[6px]">
             <BrandMark />
           </div>
           <span className="font-extrabold text-base tracking-tight">시간표짜조</span>
-        </div>
+        </Link>
         <nav className="flex gap-1">
           {NAV_ITEMS.map(({ label, prefixes }) => {
             const isActive = prefixes.some((p) => pathname.startsWith(p))
