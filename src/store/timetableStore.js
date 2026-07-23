@@ -1,6 +1,7 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
-export const useTimetableStore = create((set) => ({
+export const useTimetableStore = create(persist((set) => ({
   majorCredits: 12,
   generalCredits: 6,
   grade: 2,
@@ -34,4 +35,8 @@ export const useTimetableStore = create((set) => ({
   setFirstYearFirstSemester: (v) => set({ firstYearFirstSemester: v }),
   setFixedCourses: (fixedCourses) => set({ fixedCourses }),
   setCombinations: (combinations) => set({ combinations }),
+}), {
+  name: 'timetable-result',
+  // transcriptFile은 File 객체라 직렬화 불가 — combinations만 저장해 /result 새로고침 시 결과 복구
+  partialize: (s) => ({ combinations: s.combinations }),
 }))

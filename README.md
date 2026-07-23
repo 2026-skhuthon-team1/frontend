@@ -67,3 +67,13 @@
 | `/input` | 시간표 선호도 입력 | `src/pages/TimetableInputPage.jsx` |
 | `/result` | AI 추천 시간표 | `src/pages/TimetableResultPage.jsx` |
 | `/report` | 학업 분석 리포트 | *(미구현)* |
+
+---
+
+## 로컬 개발
+
+`.env.example`를 `.env`로 복사하고 값을 채운 뒤 `npm run dev`.
+
+| 변수 | 설명 |
+|------|------|
+| `VITE_API_PROXY_TARGET` | 개발 서버의 `/api` 프록시가 요청을 중계할 백엔드 주소. 미설정 시 `/api` 502 발생. |
