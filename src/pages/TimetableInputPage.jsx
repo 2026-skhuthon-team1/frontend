@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/Button'
 import { useTimetableInput } from '../hooks/useTimetableInput'
 import { useMajorOptions } from '../hooks/useMajorOptions'
+import { FRESHMAN_MAJOR_CREDIT_CAP } from '../store/timetableStore'
 import TopBar from '../components/TopBar'
 
 const DAYS = ['월', '화', '수', '목', '금']
@@ -79,11 +80,16 @@ export default function TimetableInputPage() {
   const navigate = useNavigate()
   const {
     majorCredits, generalCredits, grade, offDays, avoidFirstClass, includeSocialService, majors,
-    firstYearFirstSemester,
+    firstYearFirstSemester, firstYearSecondSemester,
     setMajorCredits, setGeneralCredits, setGrade, toggleOffDay, setAvoidFirstClass, setIncludeSocialService, toggleMajor,
     loading, error, submit,
   } = useTimetableInput()
   const majorOptions = useMajorOptions()
+
+  // 1학년 1·2학기는 전공탐색만 수강 — 학년 선택/사회봉사를 숨기고 전공 학점을 6까지만 받는다
+  const isFreshman = firstYearFirstSemester || firstYearSecondSemester
+  const majorCreditsMax = isFreshman ? FRESHMAN_MAJOR_CREDIT_CAP : 24
+  const majorCreditsValue = Math.min(majorCredits, majorCreditsMax)
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col">
@@ -102,30 +108,30 @@ export default function TimetableInputPage() {
 
           {/* Form Card */}
           <div className="bg-white rounded-2xl shadow-sm border border-[#f1f5f9] px-10 py-2 flex flex-col divide-y divide-[#f1f5f9]">
-            {/* 전공 학점 — 1학년 1학기는 아직 전공이 없어 전공탐색 학점으로 대신 받는다 */}
+            {/* 전공 학점 — 1학년(1·2학기)은 아직 전공이 없어 전공탐색 학점(최대 6)으로 대신 받는다 */}
             <SectionRow
-              label={firstYearFirstSemester ? '전탐 학점' : '전공 학점'}
-              description={firstYearFirstSemester ? '이번 학기에 수강할 전공탐색 학점' : '이번 학기에 수강할 전공 학점'}
+              label={isFreshman ? '전공탐색 학점' : '전공 학점'}
+              description={isFreshman ? '이번 학기에 수강할 전공탐색 학점 (최대 6학점)' : '이번 학기에 수강할 전공 학점'}
             >
               <input
                 type="range"
                 min={0}
-                max={24}
+                max={majorCreditsMax}
                 step={1}
-                value={majorCredits}
+                value={majorCreditsValue}
                 onChange={(e) => setMajorCredits(Number(e.target.value))}
                 className="w-[280px] accent-[#7ccf00]"
               />
               <div className="flex items-baseline gap-1.5">
-                <span className="text-[20px] font-bold text-[#5ea500]">{majorCredits}</span>
+                <span className="text-[20px] font-bold text-[#5ea500]">{majorCreditsValue}</span>
                 <span className="text-base text-[#90a1b9]">학점</span>
               </div>
             </SectionRow>
 
-            {/* 교양 학점 — 1학년 1학기는 CourseSelectPage에서 고른 교양필수·채플이 이 학점에 포함된다 */}
+            {/* 교양 학점 — 1학년은 CourseSelectPage에서 고른 교양필수·채플이 이 학점에 포함된다 */}
             <SectionRow
               label="교양 학점"
-              description={firstYearFirstSemester ? '이번 학기에 수강할 교양 학점 (교양필수 및 채플 포함)' : '이번 학기에 수강할 교양 학점'}
+              description={isFreshman ? '이번 학기에 수강할 교양 학점 (교양필수 및 채플 포함)' : '이번 학기에 수강할 교양 학점'}
             >
               <input
                 type="range"
@@ -142,8 +148,8 @@ export default function TimetableInputPage() {
               </div>
             </SectionRow>
 
-            {/* 현재 학년 — 1학년 1학기는 학년이 확정돼 있으니 물어볼 필요 없다 */}
-            {!firstYearFirstSemester && (
+            {/* 현재 학년 — 1학년(1·2학기)은 학년이 확정돼 있으니 물어볼 필요 없다 */}
+            {!isFreshman && (
               <SectionRow label="현재 학년" description="본인의 현재 학년을 선택해 주세요">
                 {GRADES.map((g) => (
                   <ToggleBtn key={g} active={grade === g} onClick={() => setGrade(g)} wide>
@@ -179,8 +185,8 @@ export default function TimetableInputPage() {
               ))}
             </SectionRow>
 
-            {/* 사회봉사 포함 여부 — FirstYearTimetableRequestDto엔 이 필드 자체가 없다 */}
-            {!firstYearFirstSemester && (
+            {/* 사회봉사 포함 여부 — 1학년은 수강 불가, FirstYearTimetableRequestDto엔 이 필드 자체가 없다 */}
+            {!isFreshman && (
               <SectionRow label="사회봉사 포함 여부" description="사회봉사 과목 시간표에 포함">
                 {[
                   { label: '포함', value: true },

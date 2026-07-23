@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import TopBar from '../components/TopBar';
 import { useTimetableStore } from '../store/timetableStore';
-import { getOfferings } from '../api/courses';
+import { getGeneralRequiredOfferings } from '../api/courses';
 import { fixMojibake } from '../utils/mojibake';
 
-// 1학년 1학기 필수 교양 5과목 — GET /courses/offerings 응답의 courseName과 정확히 일치해야 분반을 찾을 수 있다
+// 1학년 1학기 필수 교양 5과목 — GET /courses/general-required-offerings 응답의 courseName과 정확히 일치해야 분반을 찾을 수 있다
 // 대학생활세미나는 전원 필수 수강이라 "안 듣습니다"로 뺄 수 없다
 const FIXED_COURSES = [
   { name: '대학생활세미나', color: 'blue', excludable: false },
@@ -79,11 +79,13 @@ function CourseRow({ name, color, excludable, index, sections, professor, offeri
 export default function CourseSelectPage() {
   const navigate = useNavigate();
   const setFirstYearFirstSemester = useTimetableStore((s) => s.setFirstYearFirstSemester);
+  const setFirstYearSecondSemester = useTimetableStore((s) => s.setFirstYearSecondSemester);
   const setFixedCourses = useTimetableStore((s) => s.setFixedCourses);
-  // useMajorOptions와 같은 쿼리키를 써서 GET /courses/offerings 응답을 그대로 공유(캐시)한다
+  const clampFreshmanMajorCredits = useTimetableStore((s) => s.clampFreshmanMajorCredits);
+  // 전체 카탈로그를 받아 걸러내는 대신, 1학년 교양필수만 주는 전용 엔드포인트를 쓴다
   const { data: offerings = [] } = useQuery({
-    queryKey: ['courses', 'offerings'],
-    queryFn: getOfferings,
+    queryKey: ['courses', 'general-required'],
+    queryFn: getGeneralRequiredOfferings,
     staleTime: Infinity,
   });
 
@@ -109,17 +111,30 @@ export default function CourseSelectPage() {
   const selectOffering = (name, offeringId) =>
     setSelections((prev) => ({ ...prev, [name]: { ...prev[name], offeringId } }));
 
-  // 제외하지 않고 분반까지 확정한 과목만 fixedCourses로 보낸다 (GET /courses/offerings가 준 원본 객체 그대로 —
+  // 제외하지 않고 분반까지 확정한 과목만 fixedCourses로 보낸다 (GET /courses/general-required-offerings가 준 원본 객체 그대로 —
   // 백엔드가 courseCode/times 등 전체 필드로 분반을 식별한다)
   const buildFixedCourses = () =>
     FIXED_COURSES.filter((c) => !excluded.includes(c.name) && selections[c.name].offeringId != null)
       .map((c) => offerings.find((o) => o.offeringId === selections[c.name].offeringId))
       .filter(Boolean);
 
-  const startAsFreshman = () => {
+  // 두 학기 모두 여기서 고른 교양필수 분반을 그대로 넘기고, 전공 학점을 전공탐색 상한(6)으로 낮춘다.
+  // 플래그는 상호배타로 정리한다.
+  const startAsFirstSemester = () => {
     setFixedCourses(buildFixedCourses());
+    clampFreshmanMajorCredits();
+    setFirstYearSecondSemester(false);
     setFirstYearFirstSemester(true);
     navigate('/input');
+  };
+
+  // 1학년 2학기는 1학기 성적표가 필요하므로 업로드 화면(/courses/second-semester)을 먼저 거친다.
+  // 둘째학기 플래그는 그 화면(AnalyzePage)에서 성적표 등록이 끝날 때 켜진다.
+  const startAsSecondSemester = () => {
+    setFixedCourses(buildFixedCourses());
+    clampFreshmanMajorCredits();
+    setFirstYearFirstSemester(false);
+    navigate('/courses/second-semester');
   };
 
   return (
@@ -158,11 +173,11 @@ export default function CourseSelectPage() {
             설정한 과목과 시간대를 기반으로 AI가 최적의 전체 시간표 조합을 생성해요.
           </p>
           <div className="ml-auto flex gap-3">
-            <button onClick={startAsFreshman}
+            <button onClick={startAsFirstSemester}
               className="px-6 py-3 text-sm font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition">
               1학년 1학기입니다
             </button>
-            <button onClick={() => navigate('/courses/second-semester')}
+            <button onClick={startAsSecondSemester}
               className="px-6 py-3 text-sm font-bold text-white bg-primary-500 rounded-xl hover:bg-primary-600 transition">
               1학년 2학기입니다
             </button>

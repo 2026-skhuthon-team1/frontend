@@ -11,7 +11,7 @@ const STEPS = [
   '들을 수 있는 과목 추리기',
 ];
 
-export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true }) {
+export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true, freshmanSecondSemester = false }) {
   const navigate = useNavigate();
   const {
     analyzing, progress, doneSteps, activeStep, analyzed,
@@ -19,6 +19,7 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
   } = useAppStore();
   const setTranscriptFile = useTimetableStore((s) => s.setTranscriptFile);
   const setFirstYearFirstSemester = useTimetableStore((s) => s.setFirstYearFirstSemester);
+  const setFirstYearSecondSemester = useTimetableStore((s) => s.setFirstYearSecondSemester);
   const running = useRef(false);
   const [fileName, setFileName] = useState('');
 
@@ -35,7 +36,9 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
         // 엑셀 파싱은 백엔드가 /timetables/generate에서 조건과 함께 한 번에 처리하므로
         // 여기서는 파일을 store에 담아두기만 하고, 이 연출용 진행 애니메이션으로 끝낸다
         setTranscriptFile(file);
-        setFirstYearFirstSemester(false); // 실제 성적표를 올렸으니 1학년 1학기 전용 플로우 플래그는 확실히 꺼둔다
+        // 성적표를 올렸으니 엑셀 없는 1학기 플래그는 끄고, 1학년 2학기 진입 경로면 둘째학기 플래그를 켠다
+        setFirstYearFirstSemester(false);
+        setFirstYearSecondSemester(freshmanSecondSemester);
         finishAnalysis();
         return;
       }
