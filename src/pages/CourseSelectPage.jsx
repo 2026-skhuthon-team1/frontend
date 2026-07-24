@@ -81,7 +81,7 @@ export default function CourseSelectPage() {
   const setFirstYearFirstSemester = useTimetableStore((s) => s.setFirstYearFirstSemester);
   const setFirstYearSecondSemester = useTimetableStore((s) => s.setFirstYearSecondSemester);
   const setFixedCourses = useTimetableStore((s) => s.setFixedCourses);
-  const clampFreshmanMajorCredits = useTimetableStore((s) => s.clampFreshmanMajorCredits);
+  const applyFreshmanDefaults = useTimetableStore((s) => s.applyFreshmanDefaults);
   // 전체 카탈로그를 받아 걸러내는 대신, 1학년 교양필수만 주는 전용 엔드포인트를 쓴다
   const { data: offerings = [] } = useQuery({
     queryKey: ['courses', 'general-required'],
@@ -98,13 +98,14 @@ export default function CourseSelectPage() {
   const toggleExclude = (name) =>
     setExcluded((prev) => prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name]);
 
-  // 교수님을 바꾸면 그 교수님의 분반 목록이 통째로 달라지므로, 분반이 하나면 바로 그걸로 확정하고
-  // 여러 개면 일단 비워뒀다가 아래 select에서 고르게 한다
+  // 교수님을 고르면 첫 분반을 바로 기본 확정한다. 분반이 여러 개면 아래 시간 드롭다운에서 바꿀 수 있다.
+  // (기본값을 null로 두면, 시간 드롭다운이 빈 옵션 없이 첫 옵션을 "보여주기만" 하고 offeringId는 null로 남아
+  //  사용자가 시간을 안 건드리면 그 과목이 buildFixedCourses에서 통째로 빠진다 — 화면엔 시간이 보이는데 시간표엔 안 나옴)
   const selectProfessor = (name, professor) => {
     const sections = offerings.filter((o) => o.courseName === name && o.professor === professor);
     setSelections((prev) => ({
       ...prev,
-      [name]: { professor, offeringId: sections.length === 1 ? sections[0].offeringId : null },
+      [name]: { professor, offeringId: sections[0]?.offeringId ?? null },
     }));
   };
 
@@ -131,7 +132,7 @@ export default function CourseSelectPage() {
   // 플래그는 상호배타로 정리한다.
   const startAsFirstSemester = () => {
     setFixedCourses(buildFixedCourses());
-    clampFreshmanMajorCredits();
+    applyFreshmanDefaults();
     setFirstYearSecondSemester(false);
     setFirstYearFirstSemester(true);
     navigate('/input');
@@ -141,7 +142,7 @@ export default function CourseSelectPage() {
   // 둘째학기 플래그는 그 화면(AnalyzePage)에서 성적표 등록이 끝날 때 켜진다.
   const startAsSecondSemester = () => {
     setFixedCourses(buildFixedCourses());
-    clampFreshmanMajorCredits();
+    applyFreshmanDefaults();
     setFirstYearFirstSemester(false);
     navigate('/courses/second-semester');
   };

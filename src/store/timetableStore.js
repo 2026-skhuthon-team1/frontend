@@ -20,8 +20,9 @@ export const useTimetableStore = create(persist((set) => ({
   combinations: [], // POST /timetables/generate 응답의 candidates — /result 페이지가 이 값을 읽어서 렌더링
 
   setMajorCredits: (majorCredits) => set({ majorCredits }),
-  // 1학년 플로우 진입 시 호출 — 저장된 전공 학점을 전공탐색 상한(6)으로 낮춰 입력·요청·결과 요약이 모두 일치하게 한다
-  clampFreshmanMajorCredits: () => set((s) => ({ majorCredits: Math.min(s.majorCredits, FRESHMAN_MAJOR_CREDIT_CAP) })),
+  // 1학년 플로우 진입 시 호출 — 학년을 1로 고정하고(신입생은 학년 선택 UI가 없어 기본값 2로 남는 걸 막는다),
+  // 저장된 전공 학점을 전공탐색 상한(6)으로 낮춰 입력·요청·결과 요약이 모두 1학년 조건과 일치하게 한다
+  applyFreshmanDefaults: () => set((s) => ({ grade: 1, majorCredits: Math.min(s.majorCredits, FRESHMAN_MAJOR_CREDIT_CAP) })),
   setGeneralCredits: (generalCredits) => set({ generalCredits }),
   setGrade: (grade) => set({ grade }),
   toggleOffDay: (day) =>
