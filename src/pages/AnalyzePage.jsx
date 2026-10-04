@@ -26,9 +26,10 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
   const timers = useRef([]);
   const [fileName, setFileName] = useState('');
 
+  // 분석이 끝난 뒤엔 다른 파일로 다시 분석할 수 있다 — 이전 진행 상태를 비우고 새로 시작한다
   const run = (file) => {
-    if (running.current) return;
     running.current = true;
+    resetAnalysis();
     startAnalysis();
 
     let step = 0;
@@ -44,6 +45,7 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
         setFirstYearSecondSemester(freshmanSecondSemester);
         if (!freshmanSecondSemester) dropFreeMajor();
         finishAnalysis();
+        running.current = false;
         return;
       }
       setActiveStep(step);
@@ -79,11 +81,15 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
     return () => {
       pending.forEach((id) => { clearInterval(id); clearTimeout(id); });
       pending.length = 0;
+      running.current = false;
     };
   }, [resetAnalysis]);
 
+  // 분석(파싱 연출) 중에는 파일을 새로 받지 않는다 — 진행 중인 단계와 store에 담길 파일이 엇갈리지 않게 한다
+  const parsing = analyzing && !analyzed;
+
   const pickFile = (file) => {
-    if (!file) return;
+    if (!file || running.current) return;
     setFileName(file.name);
     run(file);
   };
@@ -102,11 +108,15 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
         <label
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => { e.preventDefault(); pickFile(e.dataTransfer.files?.[0]); }}
-          className="w-full bg-white rounded-2xl shadow-[0_1px_3px_rgba(15,23,43,0.06)] border-2 border-dashed border-gray-200 px-8 py-12 text-center mb-6 transition hover:border-primary-500 hover:bg-primary-100/30 cursor-pointer block">
+          aria-disabled={parsing}
+          className={`w-full bg-white rounded-2xl shadow-[0_1px_3px_rgba(15,23,43,0.06)] border-2 border-dashed border-gray-200 px-8 py-12 text-center mb-6 transition block ${
+            parsing ? 'opacity-60 cursor-not-allowed' : 'hover:border-primary-500 hover:bg-primary-100/30 cursor-pointer'
+          }`}>
           <input
             type="file"
             accept=".xlsx,.xls"
-            onChange={(e) => pickFile(e.target.files?.[0])}
+            disabled={parsing}
+            onChange={(e) => { pickFile(e.target.files?.[0]); e.target.value = ''; }}
             className="hidden"
           />
           <div className="w-16 h-16 mx-auto mb-5 bg-primary-100 rounded-2xl flex items-center justify-center">
@@ -121,8 +131,10 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
               <>학사정보시스템 → 졸업 → 졸업 자가진단 → 전체 성적에서<br />엑셀 파일을 내려받아 여기로 끌어다 놓으세요</>
             )}
           </p>
-          <span className="inline-block px-6 py-[11px] text-sm font-bold text-primary-600 bg-primary-100 rounded-lg">
-            파일 선택
+          <span className={`inline-block px-6 py-[11px] text-sm font-bold rounded-lg ${
+            parsing ? 'text-gray-400 bg-gray-100' : 'text-primary-600 bg-primary-100'
+          }`}>
+            {parsing ? '분석 중에는 파일을 넣을 수 없어요' : analyzed ? '다른 파일 선택' : '파일 선택'}
           </span>
         </label>
 
