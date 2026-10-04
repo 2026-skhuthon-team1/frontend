@@ -7,11 +7,14 @@ import { getGeneralRequiredOfferings } from '../api/courses';
 import { fixMojibake } from '../utils/mojibake';
 
 // 1학년 필수 교양 5과목 — GET /courses/general-required-offerings 응답의 courseName과 정확히 일치해야 분반을 찾을 수 있다
-// 세미나는 전원 필수 수강이라 "안 듣습니다"로 뺄 수 없고, 자유전공 여부에 따라 과목이 갈린다
-// (자유전공 → 자유전공팀세미나, 그 외 학부 → 전공진로세미나)
-const SEMINAR = { free: '자유전공팀세미나', regular: '전공진로세미나' };
-// 세미나가 나뉘기 전 데이터(배포 서버)는 대학생활세미나 하나에 note "자유전공N반"으로 자유전공 분반을 구분한다
-const LEGACY_SEMINAR = '대학생활세미나';
+// 세미나는 전원 필수 수강이라 "안 듣습니다"로 뺄 수 없고, 학기와 자유전공 여부에 따라 과목이 갈린다
+// (2026학년도 1학기 수강신청안내 기준)
+// - 1학기: 전 학부 대학생활세미나. 자유전공은 note "자유전공N반" 분반, 그 외 학부는 나머지 분반
+// - 2학기: 자유전공 → 자유전공팀세미나, 그 외 학부 → 전공진로세미나
+const COLLEGE_LIFE_SEMINAR = '대학생활세미나';
+const SECOND_SEMESTER_SEMINAR = { free: '자유전공팀세미나', regular: '전공진로세미나' };
+const seminarFor = (semester, isFreeMajor) =>
+  semester === 1 ? COLLEGE_LIFE_SEMINAR : SECOND_SEMESTER_SEMINAR[isFreeMajor ? 'free' : 'regular'];
 
 const OTHER_COURSES = [
   { name: '말과글', color: 'purple', excludable: true },
@@ -20,12 +23,16 @@ const OTHER_COURSES = [
   { name: '디지털리터러시', color: 'pink', excludable: true },
 ];
 
-const coursesFor = (isFreeMajor) => [
-  { name: isFreeMajor ? SEMINAR.free : SEMINAR.regular, color: 'blue', excludable: false, isSeminar: true },
+const coursesFor = (semester, isFreeMajor) => [
+  { name: seminarFor(semester, isFreeMajor), color: 'blue', excludable: false, isSeminar: true },
   ...OTHER_COURSES,
 ];
 
-const ALL_COURSE_NAMES = [SEMINAR.free, SEMINAR.regular, ...OTHER_COURSES.map((c) => c.name)];
+const ALL_COURSE_NAMES = [
+  COLLEGE_LIFE_SEMINAR,
+  ...Object.values(SECOND_SEMESTER_SEMINAR),
+  ...OTHER_COURSES.map((c) => c.name),
+];
 
 const NUM_COLOR = {
   blue: 'bg-blue-50 text-blue-600',
@@ -100,9 +107,11 @@ export default function CourseSelectPage() {
     staleTime: Infinity,
   });
 
-  // 자유전공 여부 — 답하기 전(null)에는 세미나 과목을 정할 수 없어 학기 버튼을 막는다
+  // 학기·자유전공 여부 — 둘 다 답하기 전(null)에는 세미나 과목을 정할 수 없어 세미나 분반 선택과 다음 버튼을 막는다
+  const [semester, setSemester] = useState(null);
   const [isFreeMajor, setIsFreeMajor] = useState(null);
-  const courses = coursesFor(isFreeMajor === true);
+  const seminarReady = semester !== null && isFreeMajor !== null;
+  const courses = coursesFor(semester, isFreeMajor === true);
 
   // 과목별 선택 상태 — professor 미선택 시 offeringId는 null
   const [selections, setSelections] = useState(() =>
@@ -110,13 +119,23 @@ export default function CourseSelectPage() {
   );
   const [excluded, setExcluded] = useState([]);
 
-  // 과목명으로 분반을 찾되, 세미나가 서버에 없으면 대학생활세미나에서 자유전공 여부에 맞는 분반만 쓴다
-  const sectionsOf = (name) => {
-    const sections = offerings.filter((o) => o.courseName === name);
-    if (sections.length > 0 || !Object.values(SEMINAR).includes(name)) return sections;
-    return offerings.filter(
-      (o) => o.courseName === LEGACY_SEMINAR && (o.note ?? '').startsWith('자유전공') === (name === SEMINAR.free)
+  // 대학생활세미나는 자유전공 여부에 맞는 분반만 쓴다.
+  // 2학기 세미나가 서버에 없으면(1학기 데이터만 있는 배포 서버) 대학생활세미나 분반으로 대신한다.
+  const collegeLifeSeminarSections = () =>
+    offerings.filter(
+      (o) => o.courseName === COLLEGE_LIFE_SEMINAR && (o.note ?? '').startsWith('자유전공') === (isFreeMajor === true)
     );
+  const sectionsOf = (name) => {
+    if (name === COLLEGE_LIFE_SEMINAR) return collegeLifeSeminarSections();
+    const sections = offerings.filter((o) => o.courseName === name);
+    if (sections.length > 0 || !Object.values(SECOND_SEMESTER_SEMINAR).includes(name)) return sections;
+    return collegeLifeSeminarSections();
+  };
+
+  // 대학생활세미나는 자유전공 여부와 상관없이 과목명이 같아서, 답을 바꾸면 이전 답 기준으로 고른 분반이 남는다 — 비워서 다시 고르게 한다
+  const answerFreeMajor = (value) => {
+    setIsFreeMajor(value);
+    setSelections((prev) => ({ ...prev, [COLLEGE_LIFE_SEMINAR]: { professor: '', offeringId: null } }));
   };
 
   const toggleExclude = (name) =>
@@ -185,14 +204,35 @@ export default function CourseSelectPage() {
 
         <div className="rounded-2xl border border-gray-200 bg-white px-6 py-5 mb-4 flex items-center gap-4">
           <div>
+            <p className="font-bold text-[15px] text-gray-800">몇 학기 시간표를 만드나요?</p>
+            <p className="text-[12px] text-gray-500">
+              1학기는 대학생활세미나, 2학기는 전공진로세미나(자유전공은 자유전공팀세미나)를 들어요.
+            </p>
+          </div>
+          <div className="ml-auto flex gap-2">
+            {[{ label: '1학년 1학기', value: 1 }, { label: '1학년 2학기', value: 2 }].map(({ label, value }) => (
+              <button key={label} onClick={() => setSemester(value)}
+                className={`px-4 py-2 rounded-lg text-[13px] font-bold transition ${
+                  semester === value
+                    ? 'bg-primary-500 text-white hover:bg-primary-600'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-white px-6 py-5 mb-4 flex items-center gap-4">
+          <div>
             <p className="font-bold text-[15px] text-gray-800">자유전공학부 학생인가요?</p>
             <p className="text-[12px] text-gray-500">
-              자유전공은 자유전공팀세미나, 그 외 학부는 전공진로세미나를 들어요.
+              자유전공은 자유전공 전용 세미나 분반을 들어요.
             </p>
           </div>
           <div className="ml-auto flex gap-2">
             {[{ label: '네, 자유전공입니다', value: true }, { label: '아니요', value: false }].map(({ label, value }) => (
-              <button key={label} onClick={() => setIsFreeMajor(value)}
+              <button key={label} onClick={() => answerFreeMajor(value)}
                 className={`px-4 py-2 rounded-lg text-[13px] font-bold transition ${
                   isFreeMajor === value
                     ? 'bg-primary-500 text-white hover:bg-primary-600'
@@ -212,7 +252,7 @@ export default function CourseSelectPage() {
               color={course.color}
               excludable={course.excludable}
               index={i}
-              sections={isFreeMajor === null && course.isSeminar ? [] : sectionsOf(course.name)}
+              sections={!seminarReady && course.isSeminar ? [] : sectionsOf(course.name)}
               professor={selections[course.name].professor}
               offeringId={selections[course.name].offeringId}
               isExcluded={excluded.includes(course.name)}
@@ -228,13 +268,9 @@ export default function CourseSelectPage() {
             설정한 과목과 시간대를 기반으로 AI가 최적의 전체 시간표 조합을 생성해요.
           </p>
           <div className="ml-auto flex gap-3">
-            <button onClick={startAsFirstSemester} disabled={isFreeMajor === null}
-              className="px-6 py-3 text-sm font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed">
-              1학년 1학기입니다
-            </button>
-            <button onClick={startAsSecondSemester} disabled={isFreeMajor === null}
+            <button onClick={semester === 1 ? startAsFirstSemester : startAsSecondSemester} disabled={!seminarReady}
               className="px-6 py-3 text-sm font-bold text-white bg-primary-500 rounded-xl hover:bg-primary-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
-              1학년 2학기입니다
+              다음
             </button>
           </div>
         </div>
