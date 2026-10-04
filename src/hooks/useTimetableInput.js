@@ -25,7 +25,7 @@ export function useTimetableInput() {
       store.setCombinations(data.slice(0, 3))
       navigate(data.length > 0 ? '/result' : '/result/empty')
     },
-    onError: (e) => console.error(e.response?.data?.message ?? '오류가 발생했습니다.'),
+    onError: (e) => console.error(e.response?.data?.message ?? e.message ?? '오류가 발생했습니다.'),
   })
 
   const submit = () => {
@@ -77,7 +77,16 @@ export function useTimetableInput() {
   return {
     ...store,
     loading: mutation.isPending,
-    error: mutation.error?.response?.data?.message ?? (mutation.isError ? '오류가 발생했습니다.' : null),
+    error: toErrorMessage(mutation),
     submit,
   }
+}
+
+// 서버가 보낸 message를 우선 보여주고, 응답 없이 시간 초과로 끊긴 경우엔 그 사실을 알려준다
+function toErrorMessage(mutation) {
+  if (!mutation.isError) return null
+  const { error } = mutation
+  if (error.response?.data?.message) return error.response.data.message
+  if (error.code === 'ECONNABORTED') return 'AI 서버 응답이 늦어 시간표를 받지 못했어요. 잠시 후 다시 시도해 주세요.'
+  return '오류가 발생했습니다.'
 }
