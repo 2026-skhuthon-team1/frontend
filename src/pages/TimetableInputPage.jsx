@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/Button'
 import { useTimetableInput } from '../hooks/useTimetableInput'
 import { useMajorOptions, useDepartmentOptions } from '../hooks/useMajorOptions'
-import { FRESHMAN_MAJOR_CREDIT_CAP, FREE_MAJOR } from '../store/timetableStore'
+import { FREE_MAJOR } from '../store/timetableStore'
 import TopBar from '../components/TopBar'
 
 const DAYS = ['월', '화', '수', '목', '금']
@@ -88,17 +88,15 @@ export default function TimetableInputPage() {
   const majorOptions = useMajorOptions()
   const departmentOptions = useDepartmentOptions()
 
-  // 1학년 1·2학기는 전공탐색만 수강 — 학년 선택/사회봉사를 숨기고 전공 학점을 6까지만 받는다
+  // 1학년 1·2학기는 전공탐색만 수강 — 학년 선택/사회봉사를 숨기고 전공 학점 대신 전공탐색 학점을 받는다
   const isFreshman = firstYearFirstSemester || firstYearSecondSemester
-  const majorCreditsMax = isFreshman ? FRESHMAN_MAJOR_CREDIT_CAP : 24
-  const majorCreditsValue = Math.min(majorCredits, majorCreditsMax)
   const isFreeMajor = isFreshman && majors.includes(FREE_MAJOR)
   // 2학년 이상은 학년을 골라야 요청할 수 있다(1학년은 applyFreshmanDefaults가 1로 정해 둔다)
   const missingGrade = !isFreshman && grade === null
   // 전공·교양 모두 0학점이면 들을 과목이 없어 빈 시간표만 나오므로 제출을 막는다.
   // 단 2학년 이상이 사회봉사를 포함하면 사회봉사만 들어간 시간표를 만들 수 있다(교양 학점은 사회봉사 제외).
   const onlySocialService = !isFreshman && includeSocialService
-  const missingCredits = majorCreditsValue === 0 && generalCredits === 0 && !onlySocialService
+  const missingCredits = majorCredits === 0 && generalCredits === 0 && !onlySocialService
   // 조건이 덜 채워져 제출할 수 없는 상태 — 버튼을 회색 비활성화 모양으로 바꿔 누를 수 없음을 보여준다
   const blocked = majors.length === 0 || missingGrade || missingCredits
 
@@ -119,22 +117,22 @@ export default function TimetableInputPage() {
 
           {/* Form Card */}
           <div className="bg-white rounded-2xl shadow-sm border border-[#f1f5f9] px-10 py-2 flex flex-col divide-y divide-[#f1f5f9]">
-            {/* 전공 학점 — 1학년(1·2학기)은 아직 전공이 없어 전공탐색 학점(최대 6)으로 대신 받는다 */}
+            {/* 전공 학점 — 1학년(1·2학기)은 아직 전공이 없어 전공탐색 학점으로 대신 받는다(수강신청 안내상 학기당 상한 없음) */}
             <SectionRow
               label={isFreshman ? '전공탐색 학점' : '전공 학점'}
-              description={isFreshman ? '이번 학기에 수강할 전공탐색 학점 (최대 6학점)' : '이번 학기에 수강할 전공 학점'}
+              description={isFreshman ? '이번 학기에 수강할 전공탐색 학점' : '이번 학기에 수강할 전공 학점'}
             >
               <input
                 type="range"
                 min={0}
-                max={majorCreditsMax}
+                max={24}
                 step={1}
-                value={majorCreditsValue}
+                value={majorCredits}
                 onChange={(e) => setMajorCredits(Number(e.target.value))}
                 className="w-[280px] accent-[#7ccf00]"
               />
               <div className="flex items-baseline gap-1.5">
-                <span className="text-[20px] font-bold text-[#5ea500]">{majorCreditsValue}</span>
+                <span className="text-[20px] font-bold text-[#5ea500]">{majorCredits}</span>
                 <span className="text-base text-[#90a1b9]">학점</span>
               </div>
             </SectionRow>

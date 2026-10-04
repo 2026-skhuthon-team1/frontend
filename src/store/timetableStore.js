@@ -1,10 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-// 1학년(1·2학기)은 전공탐색만 수강 가능하고 학부당 개설이 6학점뿐이라, 이보다 크게 요청하면
-// 백엔드가 상위 학년 전공으로 목표학점을 채운다(back-fill). 프론트에서 6으로 캡해 그걸 막는다.
-export const FRESHMAN_MAJOR_CREDIT_CAP = 6
-
 // 자유전공은 1학년에만 있는 소속이다. 백엔드는 이 이름으로 자유전공 학생을 구분하고(CourseCandidateProvider.FREE_MAJOR_GROUP_NAMES),
 // 함께 보낸 학부를 전공탐색 후보로 쓴다 — 학부를 안 보내면 전체 학부가 후보가 된다.
 export const FREE_MAJOR = '자유전공학부'
@@ -33,14 +29,12 @@ export const useTimetableStore = create(persist((set) => ({
   resetConditions: () => set(INITIAL_CONDITIONS),
   setMajorCredits: (majorCredits) => set({ majorCredits }),
   // 1학년 플로우 진입 시 호출 — 학년을 1로 고정하고(신입생은 학년 선택 UI가 없어 기본값 2로 남는 걸 막는다),
-  // 저장된 전공 학점을 전공탐색 상한(6)으로 낮춰 입력·요청·결과 요약이 모두 1학년 조건과 일치하게 한다.
   // 1학년은 전공이 아니라 학부를 고르므로, 이전에 고른 전공은 비우고 자유전공 답변이면 학부를 자유전공학부로 정해 둔다.
-  applyFreshmanDefaults: (isFreeMajor) => set((s) => ({
+  applyFreshmanDefaults: (isFreeMajor) => set({
     grade: 1,
-    majorCredits: Math.min(s.majorCredits, FRESHMAN_MAJOR_CREDIT_CAP),
     majors: isFreeMajor ? [FREE_MAJOR] : [],
     explorationDepartments: [],
-  })),
+  }),
   setGeneralCredits: (generalCredits) => set({ generalCredits }),
   setGrade: (grade) => set({ grade }),
   toggleOffDay: (day) =>
