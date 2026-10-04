@@ -95,6 +95,10 @@ export default function TimetableInputPage() {
   const isFreeMajor = isFreshman && majors.includes(FREE_MAJOR)
   // 2학년 이상은 학년을 골라야 요청할 수 있다(1학년은 applyFreshmanDefaults가 1로 정해 둔다)
   const missingGrade = !isFreshman && grade === null
+  // 전공·교양 모두 0학점이면 들을 과목이 없어 빈 시간표만 나오므로 제출을 막는다.
+  // 단 2학년 이상이 사회봉사를 포함하면 사회봉사만 들어간 시간표를 만들 수 있다(교양 학점은 사회봉사 제외).
+  const onlySocialService = !isFreshman && includeSocialService
+  const missingCredits = majorCreditsValue === 0 && generalCredits === 0 && !onlySocialService
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col">
@@ -249,9 +253,10 @@ export default function TimetableInputPage() {
             <Button variant="secondary" onClick={() => navigate(-1)} className="hover:bg-[#90a1b9] hover:text-white transition-colors">
               이전으로
             </Button>
-            <Button variant="primary" onClick={submit} disabled={loading || majors.length === 0 || missingGrade} className="px-8 hover:bg-[#5ea500] transition-colors">
+            <Button variant="primary" onClick={submit} disabled={loading || majors.length === 0 || missingGrade || missingCredits} className="px-8 hover:bg-[#5ea500] transition-colors">
               {loading ? '생성 중...'
                 : missingGrade ? '학년을 선택해 주세요'
+                : missingCredits ? '전공 또는 교양 학점을 정해 주세요'
                 : majors.length === 0 ? (isFreshman ? '학부를 선택해 주세요' : '전공을 선택해 주세요')
                 : 'AI 시간표 생성하기'}
             </Button>
