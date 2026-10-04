@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/Button'
 import { useTimetableInput } from '../hooks/useTimetableInput'
-import { useMajorOptions } from '../hooks/useMajorOptions'
-import { FRESHMAN_MAJOR_CREDIT_CAP } from '../store/timetableStore'
+import { useMajorOptions, useDepartmentOptions } from '../hooks/useMajorOptions'
+import { FRESHMAN_MAJOR_CREDIT_CAP, FREE_MAJOR } from '../store/timetableStore'
 import TopBar from '../components/TopBar'
 
 const DAYS = ['월', '화', '수', '목', '금']
@@ -20,7 +20,7 @@ function SectionRow({ label, description, children }) {
   )
 }
 
-function MajorSelect({ values, onToggle, options }) {
+function MajorSelect({ values, onToggle, options, placeholder }) {
   const labelOf = (value) => options.find((o) => o.value === value)?.label ?? value
   return (
     <div className="flex flex-col gap-2">
@@ -30,7 +30,7 @@ function MajorSelect({ values, onToggle, options }) {
           onChange={(e) => e.target.value && onToggle(e.target.value)}
           className="h-14 min-w-[220px] rounded-xl border-2 border-[#e2e8f0] bg-white px-4 pr-10 text-[#90a1b9] text-base font-medium appearance-none focus:outline-none focus:border-[#7ccf00] cursor-pointer transition-colors"
         >
-          <option value="">전공을 선택하세요</option>
+          <option value="">{placeholder}</option>
           {options.map((o) => (
             <option key={o.value} value={o.value} disabled={values.includes(o.value)}>{o.label}</option>
           ))}
@@ -79,17 +79,20 @@ function ToggleBtn({ active, onClick, children, wide }) {
 export default function TimetableInputPage() {
   const navigate = useNavigate()
   const {
-    majorCredits, generalCredits, grade, offDays, avoidFirstClass, includeSocialService, majors,
+    majorCredits, generalCredits, grade, offDays, avoidFirstClass, includeSocialService, majors, explorationDepartments,
     firstYearFirstSemester, firstYearSecondSemester,
     setMajorCredits, setGeneralCredits, setGrade, toggleOffDay, setAvoidFirstClass, setIncludeSocialService, toggleMajor,
+    toggleDepartment, toggleExplorationDepartment,
     loading, error, submit,
   } = useTimetableInput()
   const majorOptions = useMajorOptions()
+  const departmentOptions = useDepartmentOptions()
 
   // 1학년 1·2학기는 전공탐색만 수강 — 학년 선택/사회봉사를 숨기고 전공 학점을 6까지만 받는다
   const isFreshman = firstYearFirstSemester || firstYearSecondSemester
   const majorCreditsMax = isFreshman ? FRESHMAN_MAJOR_CREDIT_CAP : 24
   const majorCreditsValue = Math.min(majorCredits, majorCreditsMax)
+  const isFreeMajor = isFreshman && majors.includes(FREE_MAJOR)
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col">
@@ -204,10 +207,37 @@ export default function TimetableInputPage() {
               </SectionRow>
             )}
 
-            {/* 전공 선택 — 복수전공 시 여러 개 선택 가능 */}
-            <SectionRow label="전공 선택" description="복수전공의 경우 복수 선택 가능">
-              <MajorSelect values={majors} onToggle={toggleMajor} options={majorOptions} />
-            </SectionRow>
+            {/* 1학년은 아직 전공이 없어 학부(하나)를 고른다. 자유전공 여부는 CourseSelectPage에서 이미 답해
+                자유전공이면 학부가 자유전공학부로 정해져 있으므로 이 칸을 숨기고, 아니면 자유전공학부 없이 학부만 보여준다 */}
+            {isFreshman ? (
+              !isFreeMajor && (
+                <SectionRow label="학부 선택" description="소속 학부를 선택해 주세요">
+                  <MajorSelect
+                    values={majors}
+                    onToggle={toggleDepartment}
+                    options={departmentOptions}
+                    placeholder="학부를 선택하세요"
+                  />
+                </SectionRow>
+              )
+            ) : (
+              /* 전공 선택 — 복수전공 시 여러 개 선택 가능 */
+              <SectionRow label="전공 선택" description="복수전공의 경우 복수 선택 가능">
+                <MajorSelect values={majors} onToggle={toggleMajor} options={majorOptions} placeholder="전공을 선택하세요" />
+              </SectionRow>
+            )}
+
+            {/* 자유전공은 소속 학부가 없어 전공탐색을 들을 학부를 따로 고른다 — 안 고르면 전체 학부가 후보 */}
+            {isFreeMajor && (
+              <SectionRow label="전공탐색 학부 선택" description="전공탐색 과목을 들을 학부 (미선택 시 전체 학부)">
+                <MajorSelect
+                  values={explorationDepartments}
+                  onToggle={toggleExplorationDepartment}
+                  options={departmentOptions}
+                  placeholder="학부를 선택하세요"
+                />
+              </SectionRow>
+            )}
           </div>
 
           {error && <p className="text-sm text-red-500">{error}</p>}
@@ -218,7 +248,7 @@ export default function TimetableInputPage() {
               이전으로
             </Button>
             <Button variant="primary" onClick={submit} disabled={loading || majors.length === 0} className="px-8 hover:bg-[#5ea500] transition-colors">
-              {loading ? '생성 중...' : majors.length === 0 ? '전공을 선택해 주세요' : 'AI 시간표 생성하기'}
+              {loading ? '생성 중...' : majors.length === 0 ? (isFreshman ? '학부를 선택해 주세요' : '전공을 선택해 주세요') : 'AI 시간표 생성하기'}
             </Button>
           </div>
         </div>

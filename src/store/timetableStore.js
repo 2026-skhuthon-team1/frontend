@@ -5,6 +5,10 @@ import { persist } from 'zustand/middleware'
 // 백엔드가 상위 학년 전공으로 목표학점을 채운다(back-fill). 프론트에서 6으로 캡해 그걸 막는다.
 export const FRESHMAN_MAJOR_CREDIT_CAP = 6
 
+// 자유전공은 1학년에만 있는 소속이다. 백엔드는 이 이름으로 자유전공 학생을 구분하고(CourseCandidateProvider.FREE_MAJOR_GROUP_NAMES),
+// 함께 보낸 학부를 전공탐색 후보로 쓴다 — 학부를 안 보내면 전체 학부가 후보가 된다.
+export const FREE_MAJOR = '자유전공학부'
+
 export const useTimetableStore = create(persist((set) => ({
   majorCredits: 12,
   generalCredits: 6,
@@ -13,6 +17,7 @@ export const useTimetableStore = create(persist((set) => ({
   avoidFirstClass: true,
   includeSocialService: false,
   majors: [],
+  explorationDepartments: [], // 자유전공 1학년이 전공탐색 후보로 고른 학부 — 제출 시 studentMajors에 자유전공학부와 함께 실어 보낸다
   transcriptFile: null, // /upload에서 선택한 엑셀 원본 파일 — /input 제출 시 조건과 함께 /timetables/generate로 전송
   firstYearFirstSemester: false, // CourseSelectPage에서 "1학년 1학기입니다" 선택 시 true — /input 제출 시 엑셀 없이 /timetables/first-year/first-semester로 전송
   firstYearSecondSemester: false, // "1학년 2학기입니다" 선택 시 true — 성적표 업로드 후 /input 제출 시 /timetables/first-year/second-semester로 전송
@@ -21,8 +26,14 @@ export const useTimetableStore = create(persist((set) => ({
 
   setMajorCredits: (majorCredits) => set({ majorCredits }),
   // 1학년 플로우 진입 시 호출 — 학년을 1로 고정하고(신입생은 학년 선택 UI가 없어 기본값 2로 남는 걸 막는다),
-  // 저장된 전공 학점을 전공탐색 상한(6)으로 낮춰 입력·요청·결과 요약이 모두 1학년 조건과 일치하게 한다
-  applyFreshmanDefaults: () => set((s) => ({ grade: 1, majorCredits: Math.min(s.majorCredits, FRESHMAN_MAJOR_CREDIT_CAP) })),
+  // 저장된 전공 학점을 전공탐색 상한(6)으로 낮춰 입력·요청·결과 요약이 모두 1학년 조건과 일치하게 한다.
+  // 1학년은 전공이 아니라 학부를 고르므로, 이전에 고른 전공은 비우고 자유전공 답변이면 학부를 자유전공학부로 정해 둔다.
+  applyFreshmanDefaults: (isFreeMajor) => set((s) => ({
+    grade: 1,
+    majorCredits: Math.min(s.majorCredits, FRESHMAN_MAJOR_CREDIT_CAP),
+    majors: isFreeMajor ? [FREE_MAJOR] : [],
+    explorationDepartments: [],
+  })),
   setGeneralCredits: (generalCredits) => set({ generalCredits }),
   setGrade: (grade) => set({ grade }),
   toggleOffDay: (day) =>
@@ -39,6 +50,20 @@ export const useTimetableStore = create(persist((set) => ({
         ? s.majors.filter((x) => x !== m)
         : [...s.majors, m],
     })),
+  // 1학년 학부는 하나만 고른다 — 같은 학부를 다시 누르면 선택 해제
+  toggleDepartment: (d) =>
+    set((s) => ({
+      majors: s.majors.includes(d) ? [] : [d],
+      explorationDepartments: [],
+    })),
+  toggleExplorationDepartment: (d) =>
+    set((s) => ({
+      explorationDepartments: s.explorationDepartments.includes(d)
+        ? s.explorationDepartments.filter((x) => x !== d)
+        : [...s.explorationDepartments, d],
+    })),
+  // 2학년 이상 흐름 진입 시 호출 — 자유전공은 1학년 전용이라 남아 있으면 지운다
+  dropFreeMajor: () => set((s) => ({ majors: s.majors.filter((m) => m !== FREE_MAJOR), explorationDepartments: [] })),
   setTranscriptFile: (transcriptFile) => set({ transcriptFile }),
   setFirstYearFirstSemester: (v) => set({ firstYearFirstSemester: v }),
   setFirstYearSecondSemester: (v) => set({ firstYearSecondSemester: v }),

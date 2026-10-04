@@ -33,7 +33,7 @@ export function useTimetableInput() {
     // 전공탐색은 6학점까지만 존재하므로 요청 학점을 캡해 back-fill(상위 학년 전공 혼입)을 막는다.
     if (store.firstYearFirstSemester || store.firstYearSecondSemester) {
       const firstYearPayload = {
-        studentMajors: store.majors,
+        studentMajors: [...store.majors, ...store.explorationDepartments],
         targetMajorCredits: Math.min(store.majorCredits, FRESHMAN_MAJOR_CREDIT_CAP),
         targetGeneralCredits: store.generalCredits,
         freeDays: store.offDays,

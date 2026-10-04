@@ -156,7 +156,7 @@ export default function CourseSelectPage() {
   // 플래그는 상호배타로 정리한다.
   const startAsFirstSemester = () => {
     setFixedCourses(buildFixedCourses());
-    applyFreshmanDefaults();
+    applyFreshmanDefaults(isFreeMajor);
     setFirstYearSecondSemester(false);
     setFirstYearFirstSemester(true);
     navigate('/input');
@@ -166,7 +166,7 @@ export default function CourseSelectPage() {
   // 둘째학기 플래그는 그 화면(AnalyzePage)에서 성적표 등록이 끝날 때 켜진다.
   const startAsSecondSemester = () => {
     setFixedCourses(buildFixedCourses());
-    applyFreshmanDefaults();
+    applyFreshmanDefaults(isFreeMajor);
     setFirstYearFirstSemester(false);
     navigate('/courses/second-semester');
   };
