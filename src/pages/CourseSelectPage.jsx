@@ -181,7 +181,7 @@ export default function CourseSelectPage() {
         end: o.times?.[0]?.endTime,
       }));
 
-  // 두 학기 모두 여기서 고른 교양필수 분반을 그대로 넘기고, 전공 학점을 전공탐색 상한(6)으로 낮춘다.
+  // 두 학기 모두 여기서 고른 교양필수 분반을 그대로 넘기고, 학년·학부를 1학년 기준으로 맞춘다.
   // 플래그는 상호배타로 정리한다.
   const startAsFirstSemester = () => {
     setFixedCourses(buildFixedCourses());
