@@ -6,15 +6,26 @@ import { useTimetableStore } from '../store/timetableStore';
 import { getGeneralRequiredOfferings } from '../api/courses';
 import { fixMojibake } from '../utils/mojibake';
 
-// 1학년 1학기 필수 교양 5과목 — GET /courses/general-required-offerings 응답의 courseName과 정확히 일치해야 분반을 찾을 수 있다
-// 대학생활세미나는 전원 필수 수강이라 "안 듣습니다"로 뺄 수 없다
-const FIXED_COURSES = [
-  { name: '대학생활세미나', color: 'blue', excludable: false },
+// 1학년 필수 교양 5과목 — GET /courses/general-required-offerings 응답의 courseName과 정확히 일치해야 분반을 찾을 수 있다
+// 세미나는 전원 필수 수강이라 "안 듣습니다"로 뺄 수 없고, 자유전공 여부에 따라 과목이 갈린다
+// (자유전공 → 자유전공팀세미나, 그 외 학부 → 전공진로세미나)
+const SEMINAR = { free: '자유전공팀세미나', regular: '전공진로세미나' };
+// 세미나가 나뉘기 전 데이터(배포 서버)는 대학생활세미나 하나에 note "자유전공N반"으로 자유전공 분반을 구분한다
+const LEGACY_SEMINAR = '대학생활세미나';
+
+const OTHER_COURSES = [
   { name: '말과글', color: 'purple', excludable: true },
   { name: '인권과평화', color: 'orange', excludable: true },
   { name: '과학기술과에콜로지', color: 'teal', excludable: true },
   { name: '디지털리터러시', color: 'pink', excludable: true },
 ];
+
+const coursesFor = (isFreeMajor) => [
+  { name: isFreeMajor ? SEMINAR.free : SEMINAR.regular, color: 'blue', excludable: false, isSeminar: true },
+  ...OTHER_COURSES,
+];
+
+const ALL_COURSE_NAMES = [SEMINAR.free, SEMINAR.regular, ...OTHER_COURSES.map((c) => c.name)];
 
 const NUM_COLOR = {
   blue: 'bg-blue-50 text-blue-600',
@@ -89,11 +100,24 @@ export default function CourseSelectPage() {
     staleTime: Infinity,
   });
 
+  // 자유전공 여부 — 답하기 전(null)에는 세미나 과목을 정할 수 없어 학기 버튼을 막는다
+  const [isFreeMajor, setIsFreeMajor] = useState(null);
+  const courses = coursesFor(isFreeMajor === true);
+
   // 과목별 선택 상태 — professor 미선택 시 offeringId는 null
   const [selections, setSelections] = useState(() =>
-    Object.fromEntries(FIXED_COURSES.map((c) => [c.name, { professor: '', offeringId: null }]))
+    Object.fromEntries(ALL_COURSE_NAMES.map((name) => [name, { professor: '', offeringId: null }]))
   );
   const [excluded, setExcluded] = useState([]);
+
+  // 과목명으로 분반을 찾되, 세미나가 서버에 없으면 대학생활세미나에서 자유전공 여부에 맞는 분반만 쓴다
+  const sectionsOf = (name) => {
+    const sections = offerings.filter((o) => o.courseName === name);
+    if (sections.length > 0 || !Object.values(SEMINAR).includes(name)) return sections;
+    return offerings.filter(
+      (o) => o.courseName === LEGACY_SEMINAR && (o.note ?? '').startsWith('자유전공') === (name === SEMINAR.free)
+    );
+  };
 
   const toggleExclude = (name) =>
     setExcluded((prev) => prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name]);
@@ -102,7 +126,7 @@ export default function CourseSelectPage() {
   // (기본값을 null로 두면, 시간 드롭다운이 빈 옵션 없이 첫 옵션을 "보여주기만" 하고 offeringId는 null로 남아
   //  사용자가 시간을 안 건드리면 그 과목이 buildFixedCourses에서 통째로 빠진다 — 화면엔 시간이 보이는데 시간표엔 안 나옴)
   const selectProfessor = (name, professor) => {
-    const sections = offerings.filter((o) => o.courseName === name && o.professor === professor);
+    const sections = sectionsOf(name).filter((o) => o.professor === professor);
     setSelections((prev) => ({
       ...prev,
       [name]: { professor, offeringId: sections[0]?.offeringId ?? null },
@@ -117,7 +141,7 @@ export default function CourseSelectPage() {
   // 그러면 같은 교수의 분반이 여러 개일 때(예: 말과글 오현화 4분반) 백엔드가 첫 분반을 임의로 골라
   // 사용자가 고른 시간이 무시된다. 그래서 선택 분반의 첫 강의시간을 day/start/end로 풀어서 보낸다.
   const buildFixedCourses = () =>
-    FIXED_COURSES.filter((c) => !excluded.includes(c.name) && selections[c.name].offeringId != null)
+    courses.filter((c) => !excluded.includes(c.name) && selections[c.name].offeringId != null)
       .map((c) => offerings.find((o) => o.offeringId === selections[c.name].offeringId))
       .filter(Boolean)
       .map((o) => ({
@@ -159,15 +183,36 @@ export default function CourseSelectPage() {
           </div>
         </div>
 
+        <div className="rounded-2xl border border-gray-200 bg-white px-6 py-5 mb-4 flex items-center gap-4">
+          <div>
+            <p className="font-bold text-[15px] text-gray-800">자유전공학부 학생인가요?</p>
+            <p className="text-[12px] text-gray-500">
+              자유전공은 자유전공팀세미나, 그 외 학부는 전공진로세미나를 들어요.
+            </p>
+          </div>
+          <div className="ml-auto flex gap-2">
+            {[{ label: '네, 자유전공입니다', value: true }, { label: '아니요', value: false }].map(({ label, value }) => (
+              <button key={label} onClick={() => setIsFreeMajor(value)}
+                className={`px-4 py-2 rounded-lg text-[13px] font-bold transition ${
+                  isFreeMajor === value
+                    ? 'bg-primary-500 text-white hover:bg-primary-600'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="flex flex-col gap-4 mb-8">
-          {FIXED_COURSES.map((course, i) => (
+          {courses.map((course, i) => (
             <CourseRow
               key={course.name}
               name={course.name}
               color={course.color}
               excludable={course.excludable}
               index={i}
-              sections={offerings.filter((o) => o.courseName === course.name)}
+              sections={isFreeMajor === null && course.isSeminar ? [] : sectionsOf(course.name)}
               professor={selections[course.name].professor}
               offeringId={selections[course.name].offeringId}
               isExcluded={excluded.includes(course.name)}
@@ -183,12 +228,12 @@ export default function CourseSelectPage() {
             설정한 과목과 시간대를 기반으로 AI가 최적의 전체 시간표 조합을 생성해요.
           </p>
           <div className="ml-auto flex gap-3">
-            <button onClick={startAsFirstSemester}
-              className="px-6 py-3 text-sm font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition">
+            <button onClick={startAsFirstSemester} disabled={isFreeMajor === null}
+              className="px-6 py-3 text-sm font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed">
               1학년 1학기입니다
             </button>
-            <button onClick={startAsSecondSemester}
-              className="px-6 py-3 text-sm font-bold text-white bg-primary-500 rounded-xl hover:bg-primary-600 transition">
+            <button onClick={startAsSecondSemester} disabled={isFreeMajor === null}
+              className="px-6 py-3 text-sm font-bold text-white bg-primary-500 rounded-xl hover:bg-primary-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
               1학년 2학기입니다
             </button>
           </div>
