@@ -108,11 +108,15 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
         <label
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => { e.preventDefault(); pickFile(e.dataTransfer.files?.[0]); }}
-          className="w-full bg-white rounded-2xl shadow-[0_1px_3px_rgba(15,23,43,0.06)] border-2 border-dashed border-gray-200 px-8 py-12 text-center mb-6 transition hover:border-primary-500 hover:bg-primary-100/30 cursor-pointer block">
+          aria-disabled={parsing}
+          className={`w-full bg-white rounded-2xl shadow-[0_1px_3px_rgba(15,23,43,0.06)] border-2 border-dashed border-gray-200 px-8 py-12 text-center mb-6 transition block ${
+            parsing ? 'opacity-60 cursor-not-allowed' : 'hover:border-primary-500 hover:bg-primary-100/30 cursor-pointer'
+          }`}>
           <input
             type="file"
             accept=".xlsx,.xls"
-            onChange={(e) => pickFile(e.target.files?.[0])}
+            disabled={parsing}
+            onChange={(e) => { pickFile(e.target.files?.[0]); e.target.value = ''; }}
             className="hidden"
           />
           <div className="w-16 h-16 mx-auto mb-5 bg-primary-100 rounded-2xl flex items-center justify-center">
@@ -127,8 +131,10 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
               <>학사정보시스템 → 졸업 → 졸업 자가진단 → 전체 성적에서<br />엑셀 파일을 내려받아 여기로 끌어다 놓으세요</>
             )}
           </p>
-          <span className="inline-block px-6 py-[11px] text-sm font-bold text-primary-600 bg-primary-100 rounded-lg">
-            파일 선택
+          <span className={`inline-block px-6 py-[11px] text-sm font-bold rounded-lg ${
+            parsing ? 'text-gray-400 bg-gray-100' : 'text-primary-600 bg-primary-100'
+          }`}>
+            {parsing ? '분석 중에는 파일을 넣을 수 없어요' : analyzed ? '다른 파일 선택' : '파일 선택'}
           </span>
         </label>
 
