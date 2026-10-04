@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
 import { useTimetableStore } from '../store/timetableStore';
@@ -15,13 +15,14 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
   const navigate = useNavigate();
   const {
     analyzing, progress, doneSteps, activeStep, analyzed,
-    startAnalysis, setProgress, setDoneSteps, setActiveStep, finishAnalysis,
+    startAnalysis, setProgress, setDoneSteps, setActiveStep, finishAnalysis, resetAnalysis,
   } = useAppStore();
   const setTranscriptFile = useTimetableStore((s) => s.setTranscriptFile);
   const setFirstYearFirstSemester = useTimetableStore((s) => s.setFirstYearFirstSemester);
   const setFirstYearSecondSemester = useTimetableStore((s) => s.setFirstYearSecondSemester);
   const dropFreeMajor = useTimetableStore((s) => s.dropFreeMajor);
   const running = useRef(false);
+  const timers = useRef([]);
   const [fileName, setFileName] = useState('');
 
   const run = (file) => {
@@ -53,15 +54,27 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
         if (p >= end) { p = end; clearInterval(iv); }
         setProgress(p);
       }, 30);
+      timers.current.push(iv);
 
-      setTimeout(() => {
+      timers.current.push(setTimeout(() => {
         setDoneSteps(step + 1);
         step += 1;
         next();
-      }, 6000);
+      }, 6000));
     };
     next();
   };
+
+  // 진행 상태는 전역 store라 화면을 떠났다 와도 남아 있다 — 들어올 때 0%로 되돌리고,
+  // 분석 도중 떠나면 남은 타이머가 돌아온 화면의 진행률을 덮어쓰지 않게 정리한다
+  useEffect(() => {
+    resetAnalysis();
+    const pending = timers.current;
+    return () => {
+      pending.forEach((id) => { clearInterval(id); clearTimeout(id); });
+      pending.length = 0;
+    };
+  }, [resetAnalysis]);
 
   const pickFile = (file) => {
     if (!file) return;
