@@ -1,5 +1,8 @@
 import { api } from './client'
 
+// GET /timetables/current-semester — 개설강좌 데이터의 학기(1 또는 2). 2학기면 1학년 1학기 시간표는 만들 수 없다.
+export const getCurrentSemester = () => api.get('/timetables/current-semester').then((r) => r.data.semester)
+
 // POST /timetables/generate — 엑셀 파일과 조건을 함께 보내면
 // 백엔드가 파일을 파싱(이수 과목 확인)하고 AI가 추천 조합을 만들어 candidates로 돌려준다.
 // request 파트는 JSON Blob으로 감싸야 백엔드가 application/json 파트로 인식한다.

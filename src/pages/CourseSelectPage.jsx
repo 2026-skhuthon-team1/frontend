@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import TopBar from '../components/TopBar';
 import { useTimetableStore } from '../store/timetableStore';
 import { getGeneralRequiredOfferings } from '../api/courses';
+import { getCurrentSemester } from '../api/timetable';
 import { fixMojibake } from '../utils/mojibake';
 
 // 1학년 필수 교양 5과목 — GET /courses/general-required-offerings 응답의 courseName과 정확히 일치해야 분반을 찾을 수 있다
@@ -107,10 +108,19 @@ export default function CourseSelectPage() {
     staleTime: Infinity,
   });
 
+  // 서버가 가진 개설강좌의 학기 — 2학기 데이터면 1학년 1학기 학생은 없으므로 1학기 선택 시 경고하고 진행을 막는다.
+  // (조회 실패 시엔 경고 없이 두고, 서버의 /first-year/first-semester가 같은 경고를 돌려준다)
+  const { data: currentSemester } = useQuery({
+    queryKey: ['timetables', 'current-semester'],
+    queryFn: getCurrentSemester,
+    staleTime: Infinity,
+  });
+
   // 학기·자유전공 여부 — 둘 다 답하기 전(null)에는 세미나 과목을 정할 수 없어 세미나 분반 선택과 다음 버튼을 막는다
   const [semester, setSemester] = useState(null);
   const [isFreeMajor, setIsFreeMajor] = useState(null);
   const seminarReady = semester !== null && isFreeMajor !== null;
+  const semesterNotOpen = semester !== null && currentSemester !== undefined && semester !== currentSemester;
   const courses = coursesFor(semester, isFreeMajor === true);
 
   // 과목별 선택 상태 — professor 미선택 시 offeringId는 null
@@ -223,6 +233,12 @@ export default function CourseSelectPage() {
           </div>
         </div>
 
+        {semesterNotOpen && (
+          <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] font-medium text-red-600">
+            현재는 {currentSemester}학기라 1학년 {semester}학기 시간표를 만들 수 없어요. 1학년 {currentSemester}학기를 선택해 주세요.
+          </p>
+        )}
+
         <div className="rounded-2xl border border-gray-200 bg-white px-6 py-5 mb-4 flex items-center gap-4">
           <div>
             <p className="font-bold text-[15px] text-gray-800">자유전공학부 학생인가요?</p>
@@ -268,7 +284,7 @@ export default function CourseSelectPage() {
             설정한 과목과 시간대를 기반으로 AI가 최적의 전체 시간표 조합을 생성해요.
           </p>
           <div className="ml-auto flex gap-3">
-            <button onClick={semester === 1 ? startAsFirstSemester : startAsSecondSemester} disabled={!seminarReady}
+            <button onClick={semester === 1 ? startAsFirstSemester : startAsSecondSemester} disabled={!seminarReady || semesterNotOpen}
               className="px-6 py-3 text-sm font-bold text-white bg-primary-500 rounded-xl hover:bg-primary-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
               다음
             </button>
