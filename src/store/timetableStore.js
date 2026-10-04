@@ -9,21 +9,28 @@ export const FRESHMAN_MAJOR_CREDIT_CAP = 6
 // 함께 보낸 학부를 전공탐색 후보로 쓴다 — 학부를 안 보내면 전체 학부가 후보가 된다.
 export const FREE_MAJOR = '자유전공학부'
 
-export const useTimetableStore = create(persist((set) => ({
-  majorCredits: 12,
-  generalCredits: 6,
-  grade: 2,
-  offDays: ['금'],
+// 시간표 조건의 처음 값 — 학점 0, 학년·공강 요일·전공/학부 미선택, 라디오는 왼쪽 선택지(1교시 피하기, 사회봉사 포함)
+const INITIAL_CONDITIONS = {
+  majorCredits: 0,
+  generalCredits: 0,
+  grade: null,
+  offDays: [],
   avoidFirstClass: true,
-  includeSocialService: false,
+  includeSocialService: true,
   majors: [],
   explorationDepartments: [], // 자유전공 1학년이 전공탐색 후보로 고른 학부 — 제출 시 studentMajors에 자유전공학부와 함께 실어 보낸다
+}
+
+export const useTimetableStore = create(persist((set) => ({
+  ...INITIAL_CONDITIONS,
   transcriptFile: null, // /upload에서 선택한 엑셀 원본 파일 — /input 제출 시 조건과 함께 /timetables/generate로 전송
   firstYearFirstSemester: false, // CourseSelectPage에서 "1학년 1학기입니다" 선택 시 true — /input 제출 시 엑셀 없이 /timetables/first-year/first-semester로 전송
   firstYearSecondSemester: false, // "1학년 2학기입니다" 선택 시 true — 성적표 업로드 후 /input 제출 시 /timetables/first-year/second-semester로 전송
   fixedCourses: [], // CourseSelectPage에서 고른 교양필수 분반 — {courseName, professor, day, start, end}(GeneralRequiredCourseSelectionDto 모양)로 FirstYearTimetableRequestDto.fixedCourses에 전송
   combinations: [], // POST /timetables/generate 응답의 candidates — /result 페이지가 이 값을 읽어서 렌더링
 
+  // 새 시간표 만들기(/upload 진입) 시 호출 — 지난번에 고른 조건이 화면에 남지 않게 처음 값으로 되돌린다
+  resetConditions: () => set(INITIAL_CONDITIONS),
   setMajorCredits: (majorCredits) => set({ majorCredits }),
   // 1학년 플로우 진입 시 호출 — 학년을 1로 고정하고(신입생은 학년 선택 UI가 없어 기본값 2로 남는 걸 막는다),
   // 저장된 전공 학점을 전공탐색 상한(6)으로 낮춰 입력·요청·결과 요약이 모두 1학년 조건과 일치하게 한다.

@@ -21,6 +21,7 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
   const setFirstYearFirstSemester = useTimetableStore((s) => s.setFirstYearFirstSemester);
   const setFirstYearSecondSemester = useTimetableStore((s) => s.setFirstYearSecondSemester);
   const dropFreeMajor = useTimetableStore((s) => s.dropFreeMajor);
+  const resetConditions = useTimetableStore((s) => s.resetConditions);
   const running = useRef(false);
   const timers = useRef([]);
   const [fileName, setFileName] = useState('');
@@ -67,6 +68,11 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
 
   // 진행 상태는 전역 store라 화면을 떠났다 와도 남아 있다 — 들어올 때 0%로 되돌리고,
   // 분석 도중 떠나면 남은 타이머가 돌아온 화면의 진행률을 덮어쓰지 않게 정리한다
+  // /upload는 새 시간표 만들기의 시작점이라 이전 조건도 비운다. 1학년 2학기 성적표 화면은 흐름 중간이라 유지한다.
+  useEffect(() => {
+    if (!freshmanSecondSemester) resetConditions();
+  }, [freshmanSecondSemester, resetConditions]);
+
   useEffect(() => {
     resetAnalysis();
     const pending = timers.current;
