@@ -20,6 +20,7 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
   const setTranscriptFile = useTimetableStore((s) => s.setTranscriptFile);
   const setFirstYearFirstSemester = useTimetableStore((s) => s.setFirstYearFirstSemester);
   const setFirstYearSecondSemester = useTimetableStore((s) => s.setFirstYearSecondSemester);
+  const dropFreeMajor = useTimetableStore((s) => s.dropFreeMajor);
   const running = useRef(false);
   const [fileName, setFileName] = useState('');
 
@@ -39,6 +40,7 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
         // 성적표를 올렸으니 엑셀 없는 1학기 플래그는 끄고, 1학년 2학기 진입 경로면 둘째학기 플래그를 켠다
         setFirstYearFirstSemester(false);
         setFirstYearSecondSemester(freshmanSecondSemester);
+        if (!freshmanSecondSemester) dropFreeMajor();
         finishAnalysis();
         return;
       }
