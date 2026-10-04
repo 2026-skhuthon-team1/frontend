@@ -132,6 +132,12 @@ export default function CourseSelectPage() {
     return collegeLifeSeminarSections();
   };
 
+  // 대학생활세미나는 자유전공 여부와 상관없이 과목명이 같아서, 답을 바꾸면 이전 답 기준으로 고른 분반이 남는다 — 비워서 다시 고르게 한다
+  const answerFreeMajor = (value) => {
+    setIsFreeMajor(value);
+    setSelections((prev) => ({ ...prev, [COLLEGE_LIFE_SEMINAR]: { professor: '', offeringId: null } }));
+  };
+
   const toggleExclude = (name) =>
     setExcluded((prev) => prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name]);
 
@@ -226,7 +232,7 @@ export default function CourseSelectPage() {
           </div>
           <div className="ml-auto flex gap-2">
             {[{ label: '네, 자유전공입니다', value: true }, { label: '아니요', value: false }].map(({ label, value }) => (
-              <button key={label} onClick={() => setIsFreeMajor(value)}
+              <button key={label} onClick={() => answerFreeMajor(value)}
                 className={`px-4 py-2 rounded-lg text-[13px] font-bold transition ${
                   isFreeMajor === value
                     ? 'bg-primary-500 text-white hover:bg-primary-600'
