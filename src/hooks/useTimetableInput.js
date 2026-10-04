@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
-import { useTimetableStore, FRESHMAN_MAJOR_CREDIT_CAP } from '../store/timetableStore'
+import { useTimetableStore } from '../store/timetableStore'
 import {
   generateTimetable,
   generateFirstYearFirstSemester,
@@ -30,11 +30,10 @@ export function useTimetableInput() {
 
   const submit = () => {
     // 1학년(1·2학기) 공통: FirstYearTimetableRequestDto. studentYear는 백엔드가 1로 고정하므로 안 보낸다.
-    // 전공탐색은 6학점까지만 존재하므로 요청 학점을 캡해 back-fill(상위 학년 전공 혼입)을 막는다.
     if (store.firstYearFirstSemester || store.firstYearSecondSemester) {
       const firstYearPayload = {
         studentMajors: [...store.majors, ...store.explorationDepartments],
-        targetMajorCredits: Math.min(store.majorCredits, FRESHMAN_MAJOR_CREDIT_CAP),
+        targetMajorCredits: store.majorCredits,
         targetGeneralCredits: store.generalCredits,
         freeDays: store.offDays,
         excludeFirstPeriod: store.avoidFirstClass,
