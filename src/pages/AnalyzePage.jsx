@@ -26,9 +26,10 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
   const timers = useRef([]);
   const [fileName, setFileName] = useState('');
 
+  // 분석이 끝난 뒤엔 다른 파일로 다시 분석할 수 있다 — 이전 진행 상태를 비우고 새로 시작한다
   const run = (file) => {
-    if (running.current) return;
     running.current = true;
+    resetAnalysis();
     startAnalysis();
 
     let step = 0;
@@ -44,6 +45,7 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
         setFirstYearSecondSemester(freshmanSecondSemester);
         if (!freshmanSecondSemester) dropFreeMajor();
         finishAnalysis();
+        running.current = false;
         return;
       }
       setActiveStep(step);
@@ -79,11 +81,15 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
     return () => {
       pending.forEach((id) => { clearInterval(id); clearTimeout(id); });
       pending.length = 0;
+      running.current = false;
     };
   }, [resetAnalysis]);
 
+  // 분석(파싱 연출) 중에는 파일을 새로 받지 않는다 — 진행 중인 단계와 store에 담길 파일이 엇갈리지 않게 한다
+  const parsing = analyzing && !analyzed;
+
   const pickFile = (file) => {
-    if (!file) return;
+    if (!file || running.current) return;
     setFileName(file.name);
     run(file);
   };
