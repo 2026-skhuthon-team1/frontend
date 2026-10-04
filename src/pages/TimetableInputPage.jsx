@@ -99,6 +99,8 @@ export default function TimetableInputPage() {
   // 단 2학년 이상이 사회봉사를 포함하면 사회봉사만 들어간 시간표를 만들 수 있다(교양 학점은 사회봉사 제외).
   const onlySocialService = !isFreshman && includeSocialService
   const missingCredits = majorCreditsValue === 0 && generalCredits === 0 && !onlySocialService
+  // 조건이 덜 채워져 제출할 수 없는 상태 — 버튼을 회색 비활성화 모양으로 바꿔 누를 수 없음을 보여준다
+  const blocked = majors.length === 0 || missingGrade || missingCredits
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col">
@@ -253,7 +255,12 @@ export default function TimetableInputPage() {
             <Button variant="secondary" onClick={() => navigate(-1)} className="hover:bg-[#90a1b9] hover:text-white transition-colors">
               이전으로
             </Button>
-            <Button variant="primary" onClick={submit} disabled={loading || majors.length === 0 || missingGrade || missingCredits} className="px-8 hover:bg-[#5ea500] transition-colors">
+            <Button
+              variant={blocked ? 'disabled' : 'primary'}
+              onClick={submit}
+              disabled={loading || blocked}
+              className={`px-8 transition-colors ${blocked ? '' : 'hover:bg-[#5ea500]'}`}
+            >
               {loading ? '생성 중...'
                 : missingGrade ? '학년을 선택해 주세요'
                 : missingCredits ? '전공 또는 교양 학점을 정해 주세요'
