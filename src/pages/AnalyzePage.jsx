@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
 import { useTimetableStore } from '../store/timetableStore';
@@ -15,7 +15,7 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
   const navigate = useNavigate();
   const {
     analyzing, progress, doneSteps, activeStep, analyzed,
-    startAnalysis, setProgress, setDoneSteps, setActiveStep, finishAnalysis,
+    startAnalysis, setProgress, setDoneSteps, setActiveStep, finishAnalysis, resetAnalysis,
   } = useAppStore();
   const setTranscriptFile = useTimetableStore((s) => s.setTranscriptFile);
   const setFirstYearFirstSemester = useTimetableStore((s) => s.setFirstYearFirstSemester);
@@ -62,6 +62,11 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
     };
     next();
   };
+
+  // 진행 상태는 전역 store라 화면을 떠났다 와도 남아 있다 — 들어올 때 0%로 되돌린다
+  useEffect(() => {
+    resetAnalysis();
+  }, [resetAnalysis]);
 
   const pickFile = (file) => {
     if (!file) return;
