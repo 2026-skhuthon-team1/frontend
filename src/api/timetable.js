@@ -1,5 +1,10 @@
 import { api } from './client'
 
+// AI 랭킹을 거치는 요청은 30~40초 걸린다(조합 생성은 0.1초 미만, 대부분이 AI 서버 대기).
+// 백엔드가 AI 서버를 최대 60초(AiRestClientConfig.READ_TIMEOUT_MS) 기다리므로, 그보다 여유 있게 기다려야
+// 서버는 성공했는데 프론트만 먼저 끊어 "오류가 발생했습니다."가 뜨는 일이 없다.
+export const AI_REQUEST_TIMEOUT_MS = 90_000
+
 // GET /timetables/current-semester — 개설강좌 데이터의 학기(1 또는 2). 2학기면 1학년 1학기 시간표는 만들 수 없다.
 export const getCurrentSemester = () => api.get('/timetables/current-semester').then((r) => r.data.semester)
 
@@ -10,7 +15,7 @@ export const generateTimetable = (payload, file) => {
   const formData = new FormData()
   formData.append('request', new Blob([JSON.stringify(payload)], { type: 'application/json' }))
   formData.append('file', file)
-  return api.post('/timetables/generate', formData).then((r) => r.data)
+  return api.post('/timetables/generate', formData, { timeout: AI_REQUEST_TIMEOUT_MS }).then((r) => r.data)
 }
 
 // POST /timetables/first-year/second-semester — 1학년 2학기: 조건(JSON) + 1학기 성적 엑셀을 함께 보낸다.
@@ -20,7 +25,7 @@ export const generateFirstYearSecondSemester = (payload, file) => {
   const formData = new FormData()
   formData.append('request', new Blob([JSON.stringify(payload)], { type: 'application/json' }))
   formData.append('file', file)
-  return api.post('/timetables/first-year/second-semester', formData).then((r) => r.data)
+  return api.post('/timetables/first-year/second-semester', formData, { timeout: AI_REQUEST_TIMEOUT_MS }).then((r) => r.data)
 }
 
 // TimetableCombinationResponseDto(1학년/조합 응답)의 offerings[]를
