@@ -7,7 +7,7 @@ import { FREE_MAJOR } from '../store/timetableStore'
 import TopBar from '../components/TopBar'
 
 const DAYS = ['월', '화', '수', '목', '금']
-const GRADES = [1, 2, 3, 4] // 1학년은 아직 시간표 입력 대상이 아니므로 제외
+const GRADES = [2, 3, 4] // 1학년은 필수 교양 화면을 거치는 별도 흐름이라 학년을 고르지 않는다
 const MAX_MAJOR_CREDITS = 24
 
 function SectionRow({ label, description, children }) {
