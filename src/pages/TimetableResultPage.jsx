@@ -29,13 +29,26 @@ function colorFor(category) {
   return PALETTE[hash]
 }
 
+// 학점 구분 — 백엔드 category(전공필수/전공선택/전공탐색/교양필수/교양)만으로는 사회봉사·채플이 교양필수에 섞이므로
+// 과목명으로 한 번 더 나눈다. 화면에 보여주는 순서도 이 배열 순서를 따른다.
+const CREDIT_TYPES = ['전공', '전공탐색', '사회봉사', '채플', '교양필수', '교양선택']
+function creditTypeOf(course) {
+  const name = fixMojibake(course.courseName ?? '')
+  if (name.includes('사회봉사')) return '사회봉사'
+  if (name.includes('채플')) return '채플'
+  if (course.category === '전공필수' || course.category === '전공선택') return '전공'
+  if (course.category === '전공탐색') return '전공탐색'
+  if (course.category === '교양필수') return '교양필수'
+  return '교양선택'
+}
+
 const toMin = (hhmm) => {
   const [h, m] = hhmm.split(':').map(Number)
   return h * 60 + m
 }
 
 // 백엔드 응답(TimetableRecommendationResponseDto)을 화면에서 쓰는 카드 데이터로 변환한다
-// RecommendedCourseDto엔 전공/교양 합계·공강 요일이 따로 없어서 courses[].times로부터 전부 계산한다
+// RecommendedCourseDto엔 학점 구분별 합계·공강 요일이 따로 없어서 courses로부터 전부 계산한다
 function toCard(combo, index, excludeFirstPeriod) {
   const courses = combo.courses ?? []
   const slots = courses.flatMap((c) =>
@@ -43,9 +56,13 @@ function toCard(combo, index, excludeFirstPeriod) {
   )
 
   const freeDays = DAYS.filter((d) => !slots.some((s) => s.day === d))
-  const majorCredits = courses.filter((c) => c.category !== '교양').reduce((sum, c) => sum + c.credits, 0)
-  const generalCredits = courses.filter((c) => c.category === '교양').reduce((sum, c) => sum + c.credits, 0)
-  const totalCredits = majorCredits + generalCredits
+  const creditsByType = Object.fromEntries(CREDIT_TYPES.map((type) => [type, 0]))
+  for (const c of courses) creditsByType[creditTypeOf(c)] += c.credits ?? 0
+  const totalCredits = Object.values(creditsByType).reduce((sum, credits) => sum + credits, 0)
+  // 0학점인 구분은 빼고 "전공 6 + 사회봉사 2 + 교양선택 3"처럼 보여준다
+  const creditSummary = CREDIT_TYPES.filter((type) => creditsByType[type] > 0)
+    .map((type) => `${type} ${creditsByType[type]}`)
+    .join(' + ')
   const noFirstPeriod = !slots.some((s) => toMin(s.startTime) === toMin('09:00'))
   const hasLunchClass = slots.some((s) => toMin(s.startTime) < toMin('13:30') && toMin(s.endTime) > toMin('12:00'))
 
@@ -54,7 +71,7 @@ function toCard(combo, index, excludeFirstPeriod) {
   if (!hasLunchClass) tags.push('#점심시간보장')
   if (excludeFirstPeriod && noFirstPeriod) tags.push('#1교시없음')
 
-  const descParts = [`전공 ${majorCredits} + 교양 ${generalCredits}`, `${totalCredits}학점`]
+  const descParts = [creditSummary, `${totalCredits}학점`].filter(Boolean)
   if (freeDays.length > 0) descParts.push(`${freeDays.join('/')} 공강`)
   if (excludeFirstPeriod && noFirstPeriod) descParts.push('1교시 없음')
 
