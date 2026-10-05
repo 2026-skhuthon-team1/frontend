@@ -105,7 +105,7 @@ export default function TimetableInputPage() {
   // 2학년 이상은 학년을 골라야 요청할 수 있다(1학년은 applyFreshmanDefaults가 1로 정해 둔다)
   const missingGrade = !isFreshman && grade === null
   // 전공·교양 모두 0학점이면 들을 과목이 없어 빈 시간표만 나오므로 제출을 막는다.
-  // 단 교양 학점과 따로 들어가는 과목(채플, 2학년 이상의 사회봉사, 1학년이 고른 교양필수)이 있으면 그것만으로 시간표를 만들 수 있다.
+  // 단 교양선택 학점과 따로 들어가는 과목(채플, 2학년 이상의 사회봉사, 1학년이 고른 교양필수)이 있으면 그것만으로 시간표를 만들 수 있다.
   const hasFixedOnlyCourses = includeChapel || (!isFreshman && includeSocialService) || (isFreshman && fixedCourses.length > 0)
   const missingCredits = majorCredits === 0 && generalCredits === 0 && !hasFixedOnlyCourses
   // 조건이 덜 채워져 제출할 수 없는 상태 — 버튼을 회색 비활성화 모양으로 바꿔 누를 수 없음을 보여준다
@@ -152,9 +152,9 @@ export default function TimetableInputPage() {
               </div>
             </SectionRow>
 
-            {/* 교양 학점 — 교양선택 과목 학점만 센다. 교양필수(1학년이 고른 과목)·채플·사회봉사는 각자 고정·포함 여부로 따로 들어간다 */}
+            {/* 교양선택 학점 — 교양선택 과목 학점만 센다. 교양필수(1학년이 고른 과목)·채플·사회봉사는 각자 고정·포함 여부로 따로 들어간다 */}
             <SectionRow
-              label="교양 학점"
+              label="교양선택 학점"
               description={isFreshman
                 ? '교양필수·채플을 제외한 교양선택 학점만 입력해 주세요'
                 : '교양필수·채플·사회봉사를 제외한 교양선택 학점만 입력해 주세요'}
@@ -211,7 +211,7 @@ export default function TimetableInputPage() {
               ))}
             </SectionRow>
 
-            {/* 채플 포함 여부 — 포함하면 아직 듣지 않은 채플 분반 하나가 들어간다(교양 학점과 별개). 이미 두 채플을 모두 들었으면 들어가지 않는다 */}
+            {/* 채플 포함 여부 — 포함하면 아직 듣지 않은 채플 분반 하나가 들어간다(교양선택 학점과 별개). 이미 두 채플을 모두 들었으면 들어가지 않는다 */}
             <SectionRow label="채플 포함 여부" description="비아메디아 채플 시간표에 포함 (이수한 채플 제외)">
               {[
                 { label: '포함', value: true },
@@ -295,7 +295,7 @@ export default function TimetableInputPage() {
             >
               {loading ? '생성 중...'
                 : missingGrade ? '학년을 선택해 주세요'
-                : missingCredits ? '전공 또는 교양 학점을 정해 주세요'
+                : missingCredits ? '전공 또는 교양선택 학점을 정해 주세요'
                 : majors.length === 0 ? (isFreshman ? '학부를 선택해 주세요' : '전공을 선택해 주세요')
                 : 'AI 시간표 생성하기'}
             </Button>

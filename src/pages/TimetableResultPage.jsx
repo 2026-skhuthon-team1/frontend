@@ -174,7 +174,7 @@ export default function TimetableResultPage() {
             <p className="text-[13px] font-bold text-[#90a1b9] mb-2">현재 설정 조건</p>
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-[#314158]">
               <span>전공 <span className="font-bold text-[#1d293d]">{majorsLabel}</span> | {grade}학년</span>
-              <span>목표학점 전공 {majorCredits} + 교양 {generalCredits}</span>
+              <span>목표학점 전공 {majorCredits} + 교양선택 {generalCredits}</span>
               <span>공강요일 {offDaysLabel} | {avoidFirstClass ? '1교시 제외' : '1교시 무관'}</span>
             </div>
           </div>
