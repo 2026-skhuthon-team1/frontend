@@ -152,10 +152,12 @@ export default function TimetableInputPage() {
               </div>
             </SectionRow>
 
-            {/* 교양 학점 — 1학년은 CourseSelectPage에서 고른 교양필수·채플이 이 학점에 포함되고, 2학년 이상은 사회봉사가 빠진다(포함 여부로 따로 넣음) */}
+            {/* 교양 학점 — 교양선택 과목 학점만 센다. 교양필수(1학년이 고른 과목)·채플·사회봉사는 각자 고정·포함 여부로 따로 들어간다 */}
             <SectionRow
               label="교양 학점"
-              description={isFreshman ? '이번 학기에 수강할 교양 학점 (교양필수 및 채플 포함)' : '이번 학기에 수강할 교양 학점 (사회봉사 제외)'}
+              description={isFreshman
+                ? '교양필수·채플을 제외한 교양선택 학점만 입력해 주세요'
+                : '교양필수·채플·사회봉사를 제외한 교양선택 학점만 입력해 주세요'}
             >
               <input
                 type="range"
