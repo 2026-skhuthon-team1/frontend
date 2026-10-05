@@ -81,9 +81,9 @@ function ToggleBtn({ active, onClick, children, wide }) {
 export default function TimetableInputPage() {
   const navigate = useNavigate()
   const {
-    majorCredits, generalCredits, grade, offDays, avoidFirstClass, includeSocialService, majors, explorationDepartments,
+    majorCredits, generalCredits, grade, offDays, avoidFirstClass, includeSocialService, includeChapel, majors, explorationDepartments,
     firstYearFirstSemester, firstYearSecondSemester,
-    setMajorCredits, setGeneralCredits, setGrade, toggleOffDay, setAvoidFirstClass, setIncludeSocialService, toggleMajor,
+    setMajorCredits, setGeneralCredits, setGrade, toggleOffDay, setAvoidFirstClass, setIncludeSocialService, setIncludeChapel, toggleMajor,
     toggleDepartment, toggleExplorationDepartment,
     loading, error, submit,
   } = useTimetableInput()
@@ -201,6 +201,23 @@ export default function TimetableInputPage() {
                 <label key={label} onClick={() => setAvoidFirstClass(value)} className="flex items-center gap-2 cursor-pointer">
                   <div className="w-5 h-5 rounded-full border-2 border-[#e2e8f0] flex items-center justify-center">
                     {avoidFirstClass === value && (
+                      <div className="w-3 h-3 rounded-full bg-[#7ccf00]" />
+                    )}
+                  </div>
+                  <span className="text-base font-medium text-[#314158]">{label}</span>
+                </label>
+              ))}
+            </SectionRow>
+
+            {/* 채플 포함 여부 — 포함하면 아직 듣지 않은 채플 분반 하나가 들어간다(교양 학점과 별개). 이미 두 채플을 모두 들었으면 들어가지 않는다 */}
+            <SectionRow label="채플 포함 여부" description="비아메디아 채플 시간표에 포함 (이수한 채플 제외)">
+              {[
+                { label: '포함', value: true },
+                { label: '포함 안 함', value: false },
+              ].map(({ label, value }) => (
+                <label key={label} onClick={() => setIncludeChapel(value)} className="flex items-center gap-2 cursor-pointer">
+                  <div className="w-5 h-5 rounded-full border-2 border-[#e2e8f0] flex items-center justify-center">
+                    {includeChapel === value && (
                       <div className="w-3 h-3 rounded-full bg-[#7ccf00]" />
                     )}
                   </div>
