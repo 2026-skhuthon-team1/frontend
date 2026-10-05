@@ -5,7 +5,7 @@ import { persist } from 'zustand/middleware'
 // 함께 보낸 학부를 전공탐색 후보로 쓴다 — 학부를 안 보내면 전체 학부가 후보가 된다.
 export const FREE_MAJOR = '자유전공학부'
 
-// 시간표 조건의 처음 값 — 학점 0, 학년·공강 요일·전공/학부 미선택, 라디오는 왼쪽 선택지(1교시 피하기, 사회봉사 포함)
+// 시간표 조건의 처음 값 — 학점 0, 학년·공강 요일·전공/학부 미선택, 라디오는 왼쪽 선택지(1교시 피하기, 사회봉사 포함, 채플 포함)
 const INITIAL_CONDITIONS = {
   majorCredits: 0,
   generalCredits: 0,
@@ -13,6 +13,7 @@ const INITIAL_CONDITIONS = {
   offDays: [],
   avoidFirstClass: true,
   includeSocialService: true,
+  includeChapel: true,
   majors: [],
   explorationDepartments: [], // 자유전공 1학년이 전공탐색 후보로 고른 학부 — 제출 시 studentMajors에 자유전공학부와 함께 실어 보낸다
 }
@@ -45,6 +46,7 @@ export const useTimetableStore = create(persist((set) => ({
     })),
   setAvoidFirstClass: (v) => set({ avoidFirstClass: v }),
   setIncludeSocialService: (v) => set({ includeSocialService: v }),
+  setIncludeChapel: (v) => set({ includeChapel: v }),
   toggleMajor: (m) =>
     set((s) => ({
       majors: s.majors.includes(m)

@@ -37,6 +37,7 @@ export function useTimetableInput() {
         targetGeneralCredits: store.generalCredits,
         freeDays: store.offDays,
         excludeFirstPeriod: store.avoidFirstClass,
+        includeChapel: store.includeChapel,
         fixedCourses: store.fixedCourses,
       }
       if (store.firstYearFirstSemester) {
@@ -67,6 +68,7 @@ export function useTimetableInput() {
         freeDays: store.offDays,
         excludeFirstPeriod: store.avoidFirstClass,
         includeSocialService: store.includeSocialService,
+        includeChapel: store.includeChapel,
         fixedCourses: [],
       },
       file: store.transcriptFile,

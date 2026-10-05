@@ -81,9 +81,9 @@ function ToggleBtn({ active, onClick, children, wide }) {
 export default function TimetableInputPage() {
   const navigate = useNavigate()
   const {
-    majorCredits, generalCredits, grade, offDays, avoidFirstClass, includeSocialService, majors, explorationDepartments,
-    firstYearFirstSemester, firstYearSecondSemester,
-    setMajorCredits, setGeneralCredits, setGrade, toggleOffDay, setAvoidFirstClass, setIncludeSocialService, toggleMajor,
+    majorCredits, generalCredits, grade, offDays, avoidFirstClass, includeSocialService, includeChapel, majors, explorationDepartments,
+    firstYearFirstSemester, firstYearSecondSemester, fixedCourses,
+    setMajorCredits, setGeneralCredits, setGrade, toggleOffDay, setAvoidFirstClass, setIncludeSocialService, setIncludeChapel, toggleMajor,
     toggleDepartment, toggleExplorationDepartment,
     loading, error, submit,
   } = useTimetableInput()
@@ -105,9 +105,9 @@ export default function TimetableInputPage() {
   // 2학년 이상은 학년을 골라야 요청할 수 있다(1학년은 applyFreshmanDefaults가 1로 정해 둔다)
   const missingGrade = !isFreshman && grade === null
   // 전공·교양 모두 0학점이면 들을 과목이 없어 빈 시간표만 나오므로 제출을 막는다.
-  // 단 2학년 이상이 사회봉사를 포함하면 사회봉사만 들어간 시간표를 만들 수 있다(교양 학점은 사회봉사 제외).
-  const onlySocialService = !isFreshman && includeSocialService
-  const missingCredits = majorCredits === 0 && generalCredits === 0 && !onlySocialService
+  // 단 교양 학점과 따로 들어가는 과목(채플, 2학년 이상의 사회봉사, 1학년이 고른 교양필수)이 있으면 그것만으로 시간표를 만들 수 있다.
+  const hasFixedOnlyCourses = includeChapel || (!isFreshman && includeSocialService) || (isFreshman && fixedCourses.length > 0)
+  const missingCredits = majorCredits === 0 && generalCredits === 0 && !hasFixedOnlyCourses
   // 조건이 덜 채워져 제출할 수 없는 상태 — 버튼을 회색 비활성화 모양으로 바꿔 누를 수 없음을 보여준다
   const blocked = majors.length === 0 || missingGrade || missingCredits
 
@@ -152,10 +152,12 @@ export default function TimetableInputPage() {
               </div>
             </SectionRow>
 
-            {/* 교양 학점 — 1학년은 CourseSelectPage에서 고른 교양필수·채플이 이 학점에 포함되고, 2학년 이상은 사회봉사가 빠진다(포함 여부로 따로 넣음) */}
+            {/* 교양 학점 — 교양선택 과목 학점만 센다. 교양필수(1학년이 고른 과목)·채플·사회봉사는 각자 고정·포함 여부로 따로 들어간다 */}
             <SectionRow
               label="교양 학점"
-              description={isFreshman ? '이번 학기에 수강할 교양 학점 (교양필수 및 채플 포함)' : '이번 학기에 수강할 교양 학점 (사회봉사 제외)'}
+              description={isFreshman
+                ? '교양필수·채플을 제외한 교양선택 학점만 입력해 주세요'
+                : '교양필수·채플·사회봉사를 제외한 교양선택 학점만 입력해 주세요'}
             >
               <input
                 type="range"
@@ -201,6 +203,23 @@ export default function TimetableInputPage() {
                 <label key={label} onClick={() => setAvoidFirstClass(value)} className="flex items-center gap-2 cursor-pointer">
                   <div className="w-5 h-5 rounded-full border-2 border-[#e2e8f0] flex items-center justify-center">
                     {avoidFirstClass === value && (
+                      <div className="w-3 h-3 rounded-full bg-[#7ccf00]" />
+                    )}
+                  </div>
+                  <span className="text-base font-medium text-[#314158]">{label}</span>
+                </label>
+              ))}
+            </SectionRow>
+
+            {/* 채플 포함 여부 — 포함하면 아직 듣지 않은 채플 분반 하나가 들어간다(교양 학점과 별개). 이미 두 채플을 모두 들었으면 들어가지 않는다 */}
+            <SectionRow label="채플 포함 여부" description="비아메디아 채플 시간표에 포함 (이수한 채플 제외)">
+              {[
+                { label: '포함', value: true },
+                { label: '포함 안 함', value: false },
+              ].map(({ label, value }) => (
+                <label key={label} onClick={() => setIncludeChapel(value)} className="flex items-center gap-2 cursor-pointer">
+                  <div className="w-5 h-5 rounded-full border-2 border-[#e2e8f0] flex items-center justify-center">
+                    {includeChapel === value && (
                       <div className="w-3 h-3 rounded-full bg-[#7ccf00]" />
                     )}
                   </div>
