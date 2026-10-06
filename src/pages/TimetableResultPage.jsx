@@ -8,11 +8,23 @@ import { useTimetableStore } from '../store/timetableStore'
 import { useMajorOptions } from '../hooks/useMajorOptions'
 import { fixMojibake } from '../utils/mojibake'
 
-const TIMES = ['09:00', '10:30', '12:00', '13:30', '15:00', '16:30', '18:00']
 const DAYS = ['월', '화', '수', '목', '금']
-const SLOT_H = 64
 const SLOT_MIN = 90
 const BASE_MIN = 9 * 60 // 09:00 기준 — 슬롯 인덱스 계산의 시작점
+const MIN_SLOTS = 7 // 기본 09:00 ~ 19:30 (90분 × 7칸)
+
+// 시간축 칸 수 — 선택한 시간표의 가장 늦은 수업이 기본 범위를 넘으면 그만큼 칸을 늘린다
+const slotCountFor = (courses = []) =>
+  Math.max(MIN_SLOTS, ...courses.map((c) => c.slot + c.span))
+
+const slotLabel = (i) => {
+  const min = BASE_MIN + i * SLOT_MIN
+  return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
+}
+
+// 한 칸의 높이 — 화면 높이에 맞춰 늘고 줄되, 너무 작거나 커지지 않게 52px ~ 96px 사이로 제한한다
+// (380px ≈ 상단바 + 제목줄 + 조건 요약 + 요일 헤더 + 여백)
+const slotHeightFor = (slotCount) => `clamp(52px, calc((100vh - 380px) / ${slotCount}), 96px)`
 
 // 학점 구분 — 백엔드 category(전공필수/전공선택/전공탐색/교양필수/교양)만으로는 사회봉사·채플이 교양필수에 섞이므로
 // 과목명으로 한 번 더 나눈다. 화면에 보여주는 순서도 이 배열 순서를 따른다.
@@ -78,7 +90,7 @@ function toCard(combo, index, excludeFirstPeriod) {
     professor: fixMojibake(s.course.professor),
     room: s.course.room,
     day: DAYS.indexOf(s.day),
-    slot: Math.round((toMin(s.startTime) - BASE_MIN) / SLOT_MIN),
+    slot: Math.max(0, Math.round((toMin(s.startTime) - BASE_MIN) / SLOT_MIN)),
     span: Math.max(1, Math.round((toMin(s.endTime) - toMin(s.startTime)) / SLOT_MIN)),
     ...colorFor(creditTypeOf(s.course)),
   }))
@@ -108,6 +120,8 @@ export default function TimetableResultPage() {
   const [selectedId, setSelectedId] = useState(null)
   const selected = CARDS.find((c) => c.id === selectedId) ?? CARDS[0]
   const timetableRef = useRef(null)
+  const slotCount = slotCountFor(selected?.courses)
+  const slotLabels = Array.from({ length: slotCount }, (_, i) => slotLabel(i))
 
   // 새로고침 등으로 store가 비어있으면 다시 입력부터 하도록 되돌린다
   useEffect(() => {
@@ -124,20 +138,23 @@ export default function TimetableResultPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-white overflow-hidden">
+    // lg(1024px) 이상: 왼쪽 목록 + 오른쪽 시간표 2단, 각 패널이 따로 스크롤
+    // lg 미만: 위아래로 쌓고 페이지 전체가 스크롤 (작은 노트북·태블릿에서 아래가 잘리지 않게)
+    <div className="min-h-screen flex flex-col bg-white lg:h-screen lg:overflow-hidden">
       <TopBar />
 
       {/* 본문 — 왼쪽 추천 목록 + 오른쪽 시간표 */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col lg:flex-row lg:overflow-hidden">
         {/* 왼쪽 패널 — AI 추천 조합 목록 */}
-        <aside className="w-[400px] shrink-0 bg-[#f8fafc] border-r border-[#f1f5f9] flex flex-col overflow-y-auto">
+        <aside className="w-full shrink-0 bg-[#f8fafc] border-b border-[#f1f5f9] flex flex-col lg:w-[320px] xl:w-[380px] lg:border-b-0 lg:border-r lg:overflow-y-auto">
           <div className="px-6 py-4">
             <span className="font-bold text-base text-[#1d293d]">
               AI 추천 조합 <span className="text-[#7ccf00]">{CARDS.length}</span>
             </span>
           </div>
 
-          <div className="flex flex-col gap-3 px-6 pb-6">
+          {/* lg 미만에서는 카드를 가로로 넘겨 보게 해서 목록이 시간표를 아래로 밀어내지 않게 한다 */}
+          <div className="flex gap-3 px-6 pb-6 overflow-x-auto snap-x snap-mandatory lg:flex-col lg:overflow-visible">
             {CARDS.map((combo) => {
               // selectedId가 아직 없으면(첫 화면) 오른쪽에 기본 표시 중인 1순위(selected)가 선택된 것처럼 보이게 한다
               const isSelected = combo.id === selected?.id
@@ -145,7 +162,7 @@ export default function TimetableResultPage() {
                 <button
                   key={combo.id}
                   onClick={() => setSelectedId(combo.id)}
-                  className={`w-full text-left bg-white rounded-2xl border-2 p-5 transition-colors ${
+                  className={`w-[260px] shrink-0 snap-start text-left bg-white rounded-2xl border-2 p-5 transition-colors lg:w-full ${
                     isSelected ? 'border-[#7ccf00]' : 'border-[#e2e8f0] hover:border-[#ecfcca]'
                   }`}
                 >
@@ -153,11 +170,12 @@ export default function TimetableResultPage() {
                     <Badge variant={isSelected ? 'primary' : 'gray'}>추천 {combo.rank}순위</Badge>
                   </div>
                   <p className="font-bold text-[15px] text-[#1d293d] mb-1">{combo.name}</p>
-                  <p className="text-[11px] text-[#90a1b9]">{combo.desc}</p>
+                  <p className="text-xs text-[#90a1b9]">{combo.desc}</p>
                   {combo.tags.length > 0 && (
-                    <div className="flex gap-2 mt-3">
+                    // 태그가 많아도 카드 밖으로 넘치지 않게 줄바꿈
+                    <div className="flex flex-wrap gap-2 mt-3">
                       {combo.tags.map(tag => (
-                        <span key={tag} className="text-[10px] text-[#62748e] bg-[#f1f5f9] rounded px-2 py-1">
+                        <span key={tag} className="text-[11px] text-[#62748e] bg-[#f1f5f9] rounded px-2 py-1">
                           {tag}
                         </span>
                       ))}
@@ -170,10 +188,11 @@ export default function TimetableResultPage() {
         </aside>
 
         {/* 오른쪽 패널 — 선택한 조합의 시간표 미리보기 */}
-        <main className="flex-1 flex flex-col overflow-auto px-8 py-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-[#1d293d]">{selected?.name} 미리보기</h2>
-            <div className="flex gap-3">
+        <main className="flex-1 min-w-0 flex flex-col px-4 py-5 sm:px-8 sm:py-6 lg:overflow-auto">
+          {/* 좁은 화면에서는 버튼이 제목 아래로 내려가도록 줄바꿈 허용 */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#1d293d]">{selected?.name} 미리보기</h2>
+            <div className="flex flex-wrap gap-3">
               <button onClick={saveAsImage} className="h-10 px-5 text-sm font-bold text-[#1d293d] bg-[#f1f5f9] rounded-xl hover:bg-[#e2e8f0] transition-colors">
                 이미지로 저장
               </button>
@@ -193,80 +212,90 @@ export default function TimetableResultPage() {
             </div>
           </div>
 
-          {/* 시간표 */}
-          <div ref={timetableRef} className="border border-[#e2e8f0] rounded-xl overflow-hidden">
-            {/* 요일 헤더 행 — 월/화/수/목/금 */}
+          {/* 시간표 — 화면이 좁으면 찌그러지지 않고 가로 스크롤 */}
+          <div className="overflow-x-auto rounded-xl border border-[#e2e8f0]">
+            {/* 캡처(이미지로 저장) 대상 — 최소 폭을 줘서 요일 칸이 너무 좁아지지 않게 한다 */}
             <div
-              className="grid bg-[#f8fafc] border-b border-[#e2e8f0]"
-              style={{ gridTemplateColumns: '64px repeat(5, 1fr)' }}
+              ref={timetableRef}
+              className="min-w-[640px] bg-white"
+              style={{ '--slot-h': slotHeightFor(slotCount) }}
             >
-              <div className="h-10 border-r border-[#e2e8f0]" />
-              {DAYS.map((day, i) => (
-                <div
-                  key={day}
-                  className={`h-10 flex items-center justify-center font-bold text-sm text-[#1d293d] ${i < 4 ? 'border-r border-[#e2e8f0]' : ''}`}
-                >
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            {/* 시간표 본문 — 시간 라벨 + 요일별 수업 블록 */}
-            <div className="grid" style={{ gridTemplateColumns: '64px repeat(5, 1fr)' }}>
-              {/* 시간 라벨 열 — 09:00 ~ 18:00 */}
-              <div className="border-r border-[#e2e8f0]">
-                {TIMES.map((time, i) => (
+              {/* 요일 헤더 행 — 월/화/수/목/금 */}
+              <div
+                className="grid bg-[#f8fafc] border-b border-[#e2e8f0]"
+                style={{ gridTemplateColumns: '56px repeat(5, minmax(0, 1fr))' }}
+              >
+                <div className="h-10 border-r border-[#e2e8f0]" />
+                {DAYS.map((day, i) => (
                   <div
-                    key={time}
-                    className={`h-16 flex items-start justify-center pt-2 ${i < TIMES.length - 1 ? 'border-b border-[#e2e8f0]' : ''}`}
+                    key={day}
+                    className={`h-10 flex items-center justify-center font-bold text-sm text-[#1d293d] ${i < 4 ? 'border-r border-[#e2e8f0]' : ''}`}
                   >
-                    <span className="text-[11px] text-[#90a1b9]">{time}</span>
+                    {day}
                   </div>
                 ))}
               </div>
 
-              {/* 요일별 열 — 각 요일에 해당하는 수업 블록을 절대 위치로 배치 */}
-              {DAYS.map((day, dayIdx) => (
-                <div
-                  key={day}
-                  className={`relative ${dayIdx < 4 ? 'border-r border-[#e2e8f0]' : ''}`}
-                  style={{ height: TIMES.length * SLOT_H }}
-                >
-                  {/* 시간 구분선 — 각 슬롯(1.5시간) 사이 가로선 */}
-                  {TIMES.map((_, i) => (
-                    i < TIMES.length - 1 && (
-                      <div
-                        key={i}
-                        className="absolute w-full border-b border-[#e2e8f0]"
-                        style={{ top: (i + 1) * SLOT_H }}
-                      />
-                    )
+              {/* 시간표 본문 — 시간 라벨 + 요일별 수업 블록 */}
+              <div className="grid" style={{ gridTemplateColumns: '56px repeat(5, minmax(0, 1fr))' }}>
+                {/* 시간 라벨 열 — 09:00부터 가장 늦은 수업이 끝나는 칸까지 */}
+                <div className="border-r border-[#e2e8f0]">
+                  {slotLabels.map((time, i) => (
+                    <div
+                      key={time}
+                      className={`flex items-start justify-center pt-2 ${i < slotCount - 1 ? 'border-b border-[#e2e8f0]' : ''}`}
+                      style={{ height: 'var(--slot-h)' }}
+                    >
+                      <span className="text-xs text-[#90a1b9]">{time}</span>
+                    </div>
                   ))}
-
-                  {/* 수업 블록 — slot(시작 슬롯)과 span(차지하는 슬롯 수)으로 위치·높이 계산 */}
-                  {selected?.courses
-                    .filter(c => c.day === dayIdx)
-                    .map((course, i) => (
-                      <div
-                        key={i}
-                        className="absolute rounded overflow-hidden flex flex-col justify-start p-2"
-                        style={{
-                          top: course.slot * SLOT_H + 2,
-                          height: course.span * SLOT_H - 4,
-                          left: 2,
-                          right: 2,
-                          backgroundColor: course.bg,
-                          borderLeft: `3px solid ${course.border}`,
-                          color: course.color,
-                        }}
-                      >
-                        <p className="text-[10px] font-bold leading-tight truncate">{course.name}</p>
-                        <p className="text-[8px] leading-tight mt-0.5 truncate opacity-80">{course.type}</p>
-                        <p className="text-[8px] leading-tight truncate opacity-80">{course.professor} · {course.room}</p>
-                      </div>
-                    ))}
                 </div>
-              ))}
+
+                {/* 요일별 열 — 각 요일에 해당하는 수업 블록을 칸 수 대비 비율(%)로 배치해서 높이가 바뀌어도 위치가 맞는다 */}
+                {DAYS.map((day, dayIdx) => (
+                  <div
+                    key={day}
+                    className={`relative ${dayIdx < 4 ? 'border-r border-[#e2e8f0]' : ''}`}
+                    style={{ height: `calc(var(--slot-h) * ${slotCount})` }}
+                  >
+                    {/* 시간 구분선 — 각 슬롯(1.5시간) 사이 가로선 */}
+                    {slotLabels.map((_, i) => (
+                      i < slotCount - 1 && (
+                        <div
+                          key={i}
+                          className="absolute w-full border-b border-[#e2e8f0]"
+                          style={{ top: `${((i + 1) / slotCount) * 100}%` }}
+                        />
+                      )
+                    ))}
+
+                    {/* 수업 블록 — slot(시작 칸)과 span(차지하는 칸 수)으로 위치·높이 계산 */}
+                    {selected?.courses
+                      .filter(c => c.day === dayIdx)
+                      .map((course, i) => (
+                        <div
+                          key={i}
+                          className="absolute rounded overflow-hidden flex flex-col justify-start px-2 py-1.5"
+                          style={{
+                            top: `calc(${(course.slot / slotCount) * 100}% + 2px)`,
+                            height: `calc(${(course.span / slotCount) * 100}% - 4px)`,
+                            left: 2,
+                            right: 2,
+                            backgroundColor: course.bg,
+                            borderLeft: `3px solid ${course.border}`,
+                            color: course.color,
+                          }}
+                        >
+                          <p className="text-xs font-bold leading-tight truncate">{course.name}</p>
+                          {/* 75분 수업(1칸)에서도 잘리지 않게 유형·교수·강의실을 한 줄로 */}
+                          <p className="text-[11px] leading-tight mt-0.5 truncate opacity-80">
+                            {[course.type, course.professor, course.room].filter(Boolean).join(' · ')}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </main>
