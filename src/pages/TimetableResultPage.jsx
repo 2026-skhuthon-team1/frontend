@@ -14,7 +14,7 @@ const MIN_SLOTS = 7 // 기본 09:00 ~ 19:30 (90분 × 7칸)
 
 // 시간축 칸 수 — 선택한 시간표의 가장 늦은 수업이 기본 범위를 넘으면 그만큼 칸을 늘린다
 const slotCountFor = (courses = []) =>
-  Math.max(MIN_SLOTS, ...courses.map((c) => c.slot + c.span))
+  Math.max(MIN_SLOTS, ...courses.map((c) => Math.ceil((c.endMin - BASE_MIN) / SLOT_MIN)))
 
 const slotLabel = (i) => {
   const min = BASE_MIN + i * SLOT_MIN
@@ -89,8 +89,9 @@ function toCard(combo, index, excludeFirstPeriod) {
     professor: fixMojibake(s.course.professor),
     room: s.course.room,
     day: DAYS.indexOf(s.day),
-    slot: Math.max(0, Math.round((toMin(s.startTime) - BASE_MIN) / SLOT_MIN)),
-    span: Math.max(1, Math.round((toMin(s.endTime) - toMin(s.startTime)) / SLOT_MIN)),
+    // 90분 칸에 반올림하면 13:00~13:50과 14:00~14:50이 같은 칸에 놓여 한 블록이 다른 블록을 덮는다 — 실제 분 단위로 배치한다
+    startMin: Math.max(BASE_MIN, toMin(s.startTime)),
+    endMin: toMin(s.endTime),
     ...colorFor(creditTypeOf(s.course)),
   }))
 
@@ -265,7 +266,7 @@ export default function TimetableResultPage() {
                       )
                     ))}
 
-                    {/* 수업 블록 — slot(시작 칸)과 span(차지하는 칸 수)으로 위치·높이 계산 */}
+                    {/* 수업 블록 — 시작·종료 시각(분)으로 위치·높이 계산 */}
                     {selected?.courses
                       .filter(c => c.day === dayIdx)
                       .map((course, i) => (
@@ -273,8 +274,8 @@ export default function TimetableResultPage() {
                           key={i}
                           className="absolute rounded overflow-hidden flex flex-col justify-start px-2 py-1.5"
                           style={{
-                            top: `calc(${(course.slot / slotCount) * 100}% + 2px)`,
-                            height: `calc(${(course.span / slotCount) * 100}% - 4px)`,
+                            top: `calc(${((course.startMin - BASE_MIN) / (slotCount * SLOT_MIN)) * 100}% + 2px)`,
+                            height: `calc(${((course.endMin - course.startMin) / (slotCount * SLOT_MIN)) * 100}% - 4px)`,
                             left: 2,
                             right: 2,
                             backgroundColor: course.bg,
