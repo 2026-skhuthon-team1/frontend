@@ -9,6 +9,7 @@ import TopBar from '../components/TopBar'
 const DAYS = ['월', '화', '수', '목', '금']
 const GRADES = [2, 3, 4] // 1학년은 필수 교양 화면을 거치는 별도 흐름이라 학년을 고르지 않는다
 const MAX_MAJOR_CREDITS = 24
+const MAX_GENERAL_CREDITS = 24
 
 function SectionRow({ label, description, children }) {
   return (
@@ -59,6 +60,38 @@ function MajorSelect({ values, onToggle, options, placeholder }) {
         </div>
       )}
     </div>
+  )
+}
+
+// 학점은 슬라이더로 끌거나 숫자 칸에 직접 적을 수 있다 — 직접 적은 값도 0 ~ max 범위의 정수로 맞춘다
+function CreditField({ value, max, onChange }) {
+  const clamp = (n) => Math.min(max, Math.max(0, Math.round(n)))
+  return (
+    <>
+      <input
+        type="range"
+        min={0}
+        max={max}
+        step={1}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-[280px] accent-[#7ccf00]"
+      />
+      <div className="flex items-baseline gap-1.5">
+        <input
+          type="number"
+          min={0}
+          max={max}
+          step={1}
+          value={value}
+          // 칸을 누르면 기존 값을 선택해 두어, 바로 입력하면 "05"처럼 앞자리 0이 붙지 않고 새 값으로 바뀐다
+          onFocus={(e) => e.target.select()}
+          onChange={(e) => onChange(e.target.value === '' ? 0 : clamp(Number(e.target.value)))}
+          className="w-16 h-10 rounded-lg border-2 border-[#e2e8f0] bg-white text-center text-[20px] font-bold text-[#5ea500] focus:outline-none focus:border-[#7ccf00] transition-colors"
+        />
+        <span className="text-base text-[#90a1b9]">학점</span>
+      </div>
+    </>
   )
 }
 
@@ -137,19 +170,11 @@ export default function TimetableInputPage() {
                 : '이번 학기에 수강할 전공탐색 학점'
               }
             >
-              <input
-                type="range"
-                min={0}
-                max={majorCreditsMax}
-                step={1}
+              <CreditField
                 value={Math.min(majorCredits, majorCreditsMax)}
-                onChange={(e) => setMajorCredits(Number(e.target.value))}
-                className="w-[280px] accent-[#7ccf00]"
+                max={majorCreditsMax}
+                onChange={setMajorCredits}
               />
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-[20px] font-bold text-[#5ea500]">{Math.min(majorCredits, majorCreditsMax)}</span>
-                <span className="text-base text-[#90a1b9]">학점</span>
-              </div>
             </SectionRow>
 
             {/* 교양선택 학점 — 교양선택 과목 학점만 센다. 교양필수(1학년이 고른 과목)·채플·사회봉사는 각자 고정·포함 여부로 따로 들어간다 */}
@@ -159,19 +184,7 @@ export default function TimetableInputPage() {
                 ? '교양필수·채플을 제외한 교양선택 학점만 입력해 주세요'
                 : '교양필수·채플·사회봉사를 제외한 교양선택 학점만 입력해 주세요'}
             >
-              <input
-                type="range"
-                min={0}
-                max={24}
-                step={1}
-                value={generalCredits}
-                onChange={(e) => setGeneralCredits(Number(e.target.value))}
-                className="w-[280px] accent-[#7ccf00]"
-              />
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-[20px] font-bold text-[#5ea500]">{generalCredits}</span>
-                <span className="text-base text-[#90a1b9]">학점</span>
-              </div>
+              <CreditField value={generalCredits} max={MAX_GENERAL_CREDITS} onChange={setGeneralCredits} />
             </SectionRow>
 
             {/* 현재 학년 — 1학년(1·2학기)은 학년이 확정돼 있으니 물어볼 필요 없다 */}
