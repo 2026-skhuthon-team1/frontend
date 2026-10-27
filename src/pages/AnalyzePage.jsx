@@ -128,7 +128,7 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
           <h3 className="text-lg font-bold mb-2">과거 수강 내역 (Excel)</h3>
           <p className="text-[13px] text-gray-400 leading-relaxed mb-[22px]">
             {fileName || (
-              <>학사정보시스템 → 졸업 → 졸업 자가진단 → 전체 성적에서<br />엑셀 파일을 내려받아 여기로 끌어다 놓으세요</>
+              <>종합정보시스템 → 졸업 → 졸업 자가진단 → 전체 성적에서<br />엑셀 파일을 내려받아 여기로 끌어다 놓으세요</>
             )}
           </p>
           <span className={`inline-block px-6 py-[11px] text-sm font-bold rounded-lg ${
