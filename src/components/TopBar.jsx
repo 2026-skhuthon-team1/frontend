@@ -16,10 +16,10 @@ export default function TopBar() {
      <div className="flex items-center gap-2">
         <div className="text-right leading-tight">
           <div className="text-[13.5px] font-bold">성공회대학교</div>
-          <a href="https://portal.skhu.ac.kr/html/main/sso.html"
+          <a href="https://tis.skhu.ac.kr/"
             target="_blank" rel="noopener noreferrer"
             className="text-[11.5px] text-gray-400 hover:text-primary-600 transition cursor-pointer">
-            학교 포털 바로가기
+            종합정보시스템 바로가기
           </a>
         </div>
         <div className="w-[38px] h-[38px] rounded-full overflow-hidden bg-white border border-gray-200 flex items-center justify-center">
