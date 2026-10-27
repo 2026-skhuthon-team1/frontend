@@ -111,7 +111,8 @@ export default function TimetableResultPage() {
   const avoidFirstClass = useTimetableStore((s) => s.avoidFirstClass)
   const { majors, majorCredits, generalCredits, grade, offDays } = useTimetableStore()
   const majorOptions = useMajorOptions()
-  const majorsLabel = majors.map((m) => majorOptions.find((o) => o.value === m)?.label ?? m).join('·') || '미선택'
+  // 1학년이 고른 학부는 전공 목록에 없으므로 원본 값을 복원해 그대로 보여준다
+  const majorsLabel = majors.map((m) => majorOptions.find((o) => o.value === m)?.label ?? fixMojibake(m)).join('·') || '미선택'
   const offDaysLabel = offDays.length > 0 ? `${offDays.join('/')}요일` : '없음'
   const CARDS = useMemo(
     () => combinations.map((c, i) => toCard(c, i, avoidFirstClass)),

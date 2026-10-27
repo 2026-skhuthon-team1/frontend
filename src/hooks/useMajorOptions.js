@@ -3,8 +3,11 @@ import { getOfferings } from '../api/courses'
 import { fixMojibake } from '../utils/mojibake'
 
 // 전공선택/전공필수 과목의 sectionGroup 필드가 실제 전공명이다 (교양 과목은 null).
+// 전공탐색 과목의 sectionGroup은 학부명(1학년 전용)이라 2학년 이상 전공 목록에 섞이지 않게 뺀다.
 // 화면엔 복원한 한글을 보여주고, 서버로 보낼 때는 원본(깨진) 값을 그대로 써야
 // 백엔드에 저장된 값과 바이트가 일치해서 매칭이 된다.
+const MAJOR_CATEGORIES = ['전공필수', '전공선택']
+
 export function useMajorOptions() {
   const { data: offerings = [] } = useQuery({
     queryKey: ['courses', 'offerings'],
@@ -12,7 +15,7 @@ export function useMajorOptions() {
     staleTime: Infinity,
   })
 
-  return toOptions(offerings.map((o) => o.sectionGroup))
+  return toOptions(offerings.filter((o) => MAJOR_CATEGORIES.includes(o.category)).map((o) => o.sectionGroup))
 }
 
 // 1학년 학부 목록 — 전공탐색 과목의 sectionGroup이 학부명이다(전공명은 섞이지 않는다).
