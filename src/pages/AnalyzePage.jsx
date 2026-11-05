@@ -11,6 +11,10 @@ const STEPS = [
   '들을 수 있는 과목 추리기',
 ];
 
+// 연출용 진행 애니메이션 속도 — 단계당 0.6초(4단계 약 2.4초), 진행률은 30ms마다 갱신
+const STEP_MS = 600;
+const TICK_MS = 30;
+
 export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true, freshmanSecondSemester = false }) {
   const navigate = useNavigate();
   const {
@@ -33,7 +37,8 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
     startAnalysis();
 
     let step = 0;
-    const targets = [25, 50, 75, 100];
+    // 단계마다 전체를 똑같이 나눠 맡는다 (4단계면 25, 50, 75, 100)
+    const targets = STEPS.map((_, i) => Math.round(((i + 1) / STEPS.length) * 100));
 
     const next = () => {
       if (step >= STEPS.length) {
@@ -51,19 +56,21 @@ export default function Analyze({ nextPath = '/input', showFreshmanPrompt = true
       setActiveStep(step);
       const start = step === 0 ? 0 : targets[step - 1];
       const end = targets[step];
+      // 단계 시간 안에 진행률이 다 차도록 한 번에 오를 양을 정한다
+      const inc = (end - start) / (STEP_MS / TICK_MS);
       let p = start;
       const iv = setInterval(() => {
-        p += 2;
+        p += inc;
         if (p >= end) { p = end; clearInterval(iv); }
-        setProgress(p);
-      }, 30);
+        setProgress(Math.round(p));
+      }, TICK_MS);
       timers.current.push(iv);
 
       timers.current.push(setTimeout(() => {
         setDoneSteps(step + 1);
         step += 1;
         next();
-      }, 6000));
+      }, STEP_MS));
     };
     next();
   };
