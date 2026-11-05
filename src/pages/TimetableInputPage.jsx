@@ -5,6 +5,7 @@ import { useTimetableInput } from '../hooks/useTimetableInput'
 import { useMajorOptions, useDepartmentOptions, useExplorationCredits } from '../hooks/useMajorOptions'
 import { FREE_MAJOR } from '../store/timetableStore'
 import TopBar from '../components/TopBar'
+import TimetableResultSkeleton from '../components/TimetableResultSkeleton'
 
 const DAYS = ['월', '화', '수', '목', '금']
 const GRADES = [2, 3, 4] // 1학년은 필수 교양 화면을 거치는 별도 흐름이라 학년을 고르지 않는다
@@ -143,6 +144,9 @@ export default function TimetableInputPage() {
   const missingCredits = majorCredits === 0 && generalCredits === 0 && !hasFixedOnlyCourses
   // 조건이 덜 채워져 제출할 수 없는 상태 — 버튼을 회색 비활성화 모양으로 바꿔 누를 수 없음을 보여준다
   const blocked = majors.length === 0 || missingGrade || missingCredits
+
+  // 생성 요청이 끝날 때까지 결과 화면 모양의 스켈레톤을 보여준다 — 실패하면 입력 화면으로 돌아와 오류를 띄운다
+  if (loading) return <TimetableResultSkeleton />
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col">
