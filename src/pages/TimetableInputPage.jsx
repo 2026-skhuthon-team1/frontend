@@ -117,9 +117,9 @@ export default function TimetableInputPage() {
   const navigate = useNavigate()
   const {
     majorCredits, generalCredits, grade, offDays, avoidFirstClass, includeSocialService, includeChapel, majors, explorationDepartments,
-    firstYearFirstSemester, firstYearSecondSemester, fixedCourses, mustIncludeOfferingIds,
+    firstYearFirstSemester, firstYearSecondSemester, fixedCourses, mustIncludeOfferingIds, mustIncludeRemovedNames,
     setMajorCredits, setGeneralCredits, setGrade, toggleOffDay, setAvoidFirstClass, setIncludeSocialService, setIncludeChapel, toggleMajor,
-    toggleDepartment, toggleExplorationDepartment, toggleMustIncludeOffering,
+    toggleDepartment, toggleExplorationDepartment, toggleMustIncludeOffering, removeMustIncludeOfferings,
     loading, error, submit,
   } = useTimetableInput()
   const majorOptions = useMajorOptions()
@@ -300,7 +300,16 @@ export default function TimetableInputPage() {
 
             {/* 꼭 넣을 과목 — 담은 과목은 모든 시간표에 들어간다(전공·교양 목표 학점에도 포함). 넣을 수 없으면 서버가 이유를 message로 돌려준다 */}
             <SectionRow label="꼭 넣을 과목" description="같은 과목의 분반을 여러 개 담으면 그중 하나가 들어가요">
-              <MustIncludeCoursePicker values={mustIncludeOfferingIds} onToggle={toggleMustIncludeOffering} />
+              <MustIncludeCoursePicker
+                values={mustIncludeOfferingIds}
+                removedNames={mustIncludeRemovedNames}
+                onToggle={toggleMustIncludeOffering}
+                onRemove={removeMustIncludeOfferings}
+                isFreshman={isFreshman}
+                isFreeMajor={isFreeMajor}
+                majors={majors}
+                departments={isFreeMajor ? explorationDepartments : majors}
+              />
             </SectionRow>
           </div>
 
