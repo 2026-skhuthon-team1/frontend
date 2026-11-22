@@ -16,6 +16,7 @@ const INITIAL_CONDITIONS = {
   includeChapel: true,
   majors: [],
   explorationDepartments: [], // 자유전공 1학년이 전공탐색 후보로 고른 학부 — 제출 시 studentMajors에 자유전공학부와 함께 실어 보낸다
+  mustIncludeOfferingIds: [], // 꼭 넣을 강좌(분반) ID — 모든 시간표 요청 DTO의 mustIncludeOfferingIds로 전송
 }
 
 export const useTimetableStore = create(persist((set) => ({
@@ -67,6 +68,12 @@ export const useTimetableStore = create(persist((set) => ({
     })),
   // 2학년 이상 흐름 진입 시 호출 — 자유전공은 1학년 전용이라 남아 있으면 지운다
   dropFreeMajor: () => set((s) => ({ majors: s.majors.filter((m) => m !== FREE_MAJOR), explorationDepartments: [] })),
+  toggleMustIncludeOffering: (id) =>
+    set((s) => ({
+      mustIncludeOfferingIds: s.mustIncludeOfferingIds.includes(id)
+        ? s.mustIncludeOfferingIds.filter((x) => x !== id)
+        : [...s.mustIncludeOfferingIds, id],
+    })),
   setTranscriptFile: (transcriptFile) => set({ transcriptFile }),
   setFirstYearFirstSemester: (v) => set({ firstYearFirstSemester: v }),
   setFirstYearSecondSemester: (v) => set({ firstYearSecondSemester: v }),

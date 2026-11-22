@@ -6,6 +6,7 @@ import { useMajorOptions, useDepartmentOptions, useExplorationCredits } from '..
 import { FREE_MAJOR } from '../store/timetableStore'
 import TopBar from '../components/TopBar'
 import TimetableResultSkeleton from '../components/TimetableResultSkeleton'
+import MustIncludeCoursePicker from '../components/MustIncludeCoursePicker'
 
 const DAYS = ['월', '화', '수', '목', '금']
 const GRADES = [2, 3, 4] // 1학년은 필수 교양 화면을 거치는 별도 흐름이라 학년을 고르지 않는다
@@ -116,9 +117,9 @@ export default function TimetableInputPage() {
   const navigate = useNavigate()
   const {
     majorCredits, generalCredits, grade, offDays, avoidFirstClass, includeSocialService, includeChapel, majors, explorationDepartments,
-    firstYearFirstSemester, firstYearSecondSemester, fixedCourses,
+    firstYearFirstSemester, firstYearSecondSemester, fixedCourses, mustIncludeOfferingIds,
     setMajorCredits, setGeneralCredits, setGrade, toggleOffDay, setAvoidFirstClass, setIncludeSocialService, setIncludeChapel, toggleMajor,
-    toggleDepartment, toggleExplorationDepartment,
+    toggleDepartment, toggleExplorationDepartment, toggleMustIncludeOffering,
     loading, error, submit,
   } = useTimetableInput()
   const majorOptions = useMajorOptions()
@@ -139,8 +140,9 @@ export default function TimetableInputPage() {
   // 2학년 이상은 학년을 골라야 요청할 수 있다(1학년은 applyFreshmanDefaults가 1로 정해 둔다)
   const missingGrade = !isFreshman && grade === null
   // 전공·교양 모두 0학점이면 들을 과목이 없어 빈 시간표만 나오므로 제출을 막는다.
-  // 단 교양선택 학점과 따로 들어가는 과목(채플, 2학년 이상의 사회봉사, 1학년이 고른 교양필수)이 있으면 그것만으로 시간표를 만들 수 있다.
+  // 단 교양선택 학점과 따로 들어가는 과목(채플, 2학년 이상의 사회봉사, 1학년이 고른 교양필수, 꼭 넣을 과목)이 있으면 그것만으로 시간표를 만들 수 있다.
   const hasFixedOnlyCourses = includeChapel || (!isFreshman && includeSocialService) || (isFreshman && fixedCourses.length > 0)
+    || mustIncludeOfferingIds.length > 0
   const missingCredits = majorCredits === 0 && generalCredits === 0 && !hasFixedOnlyCourses
   // 조건이 덜 채워져 제출할 수 없는 상태 — 버튼을 회색 비활성화 모양으로 바꿔 누를 수 없음을 보여준다
   const blocked = majors.length === 0 || missingGrade || missingCredits
@@ -295,6 +297,11 @@ export default function TimetableInputPage() {
                 />
               </SectionRow>
             )}
+
+            {/* 꼭 넣을 과목 — 담은 과목은 모든 시간표에 들어간다(전공·교양 목표 학점에도 포함). 넣을 수 없으면 서버가 이유를 message로 돌려준다 */}
+            <SectionRow label="꼭 넣을 과목" description="같은 과목의 분반을 여러 개 담으면 그중 하나가 들어가요">
+              <MustIncludeCoursePicker values={mustIncludeOfferingIds} onToggle={toggleMustIncludeOffering} />
+            </SectionRow>
           </div>
 
           {error && <p className="text-sm text-red-500">{error}</p>}

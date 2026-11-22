@@ -39,6 +39,7 @@ export function useTimetableInput() {
         excludeFirstPeriod: store.avoidFirstClass,
         includeChapel: store.includeChapel,
         fixedCourses: store.fixedCourses,
+        mustIncludeOfferingIds: store.mustIncludeOfferingIds,
       }
       if (store.firstYearFirstSemester) {
         mutation.mutate({ mode: 'freshman1', payload: firstYearPayload })
@@ -70,6 +71,7 @@ export function useTimetableInput() {
         includeSocialService: store.includeSocialService,
         includeChapel: store.includeChapel,
         fixedCourses: [],
+        mustIncludeOfferingIds: store.mustIncludeOfferingIds,
       },
       file: store.transcriptFile,
     })
